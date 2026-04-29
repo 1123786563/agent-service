@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum WhitelistStatus {
+  NONE
+  INVITED
+  ACTIVE
+}
+
+enum AgentPackageStatus {
+  DRAFT
+  VALIDATING
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+model User {
+  id              String          @id @default(cuid())
+  email           String          @unique
+  role            UserRole        @default(USER)
+  whitelistStatus WhitelistStatus @default(NONE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  packages        AgentPackage[]
+  sessions        Session[]
+  magicLinkTokens MagicLinkToken[]
+}
+
+model MagicLinkToken {
+  id         String   @id @default(cuid())
+  email      String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AgentPackage {
+  id               String             @id @default(cuid())
+  ownerId          String
+  name             String
+  slug             String             @unique
+  version          String
+  summary          String
+  categories       String[]
+  metadataJson     Json
+  zipFileUrl       String
+  zipFileName      String
+  zipSizeBytes     Int
+  coverUrl         String?
+  status           AgentPackageStatus @default(DRAFT)
+  validationResult Json
+  publishedAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  owner            User               @relation(fields: [ownerId], references: [id])
+  skills           Skill[]
+  workflows        Workflow[]
+}
+
+model Skill {
+  id             String       @id @default(cuid())
+  agentPackageId String
+  name           String
+  path           String
+  description    String
+
+  agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+}
+
+model Workflow {
+  id             String       @id @default(cuid())
+  agentPackageId String
+  name           String
+  path           String
+  description    String
+
+  agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+}
