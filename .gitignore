@@ -1,7 +1,9 @@
 node_modules
-.next
+.next/
+.superpowers/
 .env
 .data
 coverage
 test-results
 playwright-report
+
