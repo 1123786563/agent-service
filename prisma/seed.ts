@@ -24,11 +24,10 @@ async function main() {
 }
 
 main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
   .finally(async () => {
     await prisma.$disconnect();
-  })
-  .catch(async (error) => {
-    console.error(error);
-    await prisma.$disconnect();
-    process.exit(1);
   });

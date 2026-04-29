@@ -48,8 +48,8 @@ model MagicLinkToken {
   consumedAt DateTime?
   createdAt  DateTime @default(now())
 
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
 }
@@ -86,6 +86,9 @@ model AgentPackage {
   owner            User               @relation(fields: [ownerId], references: [id])
   skills           Skill[]
   workflows        Workflow[]
+
+  @@index([ownerId, createdAt])
+  @@index([status, publishedAt])
 }
 
 model Skill {
@@ -96,6 +99,8 @@ model Skill {
   description    String
 
   agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+
+  @@index([agentPackageId])
 }
 
 model Workflow {
@@ -106,4 +111,6 @@ model Workflow {
   description    String
 
   agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+
+  @@index([agentPackageId])
 }
