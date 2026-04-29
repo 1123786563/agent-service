@@ -4,6 +4,7 @@ const safeRelativePath = z
   .string()
   .min(1)
   .refine((value) => !value.startsWith("/"), "Path must be relative")
+  .refine((value) => !/^[A-Za-z]:\//.test(value), "Path must be relative")
   .refine((value) => !value.includes(".."), "Path cannot include parent traversal")
   .refine((value) => !value.includes("\\"), "Path must use forward slashes");
 

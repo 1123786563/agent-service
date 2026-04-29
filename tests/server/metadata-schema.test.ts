@@ -60,6 +60,15 @@ describe("parseAgentMetadata", () => {
     ).toThrow("Invalid agent metadata");
   });
 
+  it("rejects Windows drive absolute file paths", () => {
+    expect(() =>
+      parseAgentMetadata({
+        ...validMetadata,
+        skills: [{ name: "bad", path: "C:/secret.txt", description: "bad path" }]
+      })
+    ).toThrow("Invalid agent metadata");
+  });
+
   it("rejects a non-zip import type", () => {
     expect(() =>
       parseAgentMetadata({
