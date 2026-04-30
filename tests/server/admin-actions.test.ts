@@ -25,7 +25,13 @@ vi.mock("@/server/db", () => ({
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/auth/session";
 import { prisma } from "@/server/db";
-import { activateCreatorWhitelist, archiveAgentPackage, resetOrderPayment, resolveDisputedOrder } from "@/app/admin/actions";
+import {
+  activateCreatorWhitelist,
+  archiveAgentPackage,
+  markOrderSettled,
+  resetOrderPayment,
+  resolveDisputedOrder
+} from "@/app/admin/actions";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -115,6 +121,28 @@ describe("admin actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/analytics");
     expect(revalidatePath).toHaveBeenCalledWith("/account/orders");
+    expect(revalidatePath).toHaveBeenCalledWith("/creator/orders");
+  });
+
+  it("marks completed orders as settled", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin-1" } as never);
+    vi.mocked(prisma.serviceOrder.update).mockResolvedValue({ id: "order-3" } as never);
+
+    const formData = new FormData();
+    formData.append("orderId", "order-3");
+    formData.append("settlementReference", "bank-transfer-2026-05-01");
+
+    await markOrderSettled(formData);
+
+    expect(prisma.serviceOrder.update).toHaveBeenCalledWith({
+      where: { id: "order-3" },
+      data: {
+        settledAt: expect.any(Date),
+        settlementReference: "bank-transfer-2026-05-01"
+      }
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/analytics");
     expect(revalidatePath).toHaveBeenCalledWith("/creator/orders");
   });
 });

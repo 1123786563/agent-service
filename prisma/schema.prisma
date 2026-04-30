@@ -184,6 +184,8 @@ model ServiceOrder {
   paymentStatus    PaymentStatus      @default(UNPAID)
   paymentProvider  String
   paymentReference String?
+  settledAt        DateTime?
+  settlementReference String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -197,6 +199,7 @@ model ServiceOrder {
   @@index([buyerEmail, createdAt])
   @@index([buyerUserId])
   @@index([status, paymentStatus])
+  @@index([status, settledAt])
 }
 
 model Delivery {

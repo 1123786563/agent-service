@@ -165,6 +165,26 @@ describe("admin pages", () => {
             name: "Research Assistant"
           }
         }
+      },
+      {
+        id: "order-4",
+        title: "Settlement package",
+        buyerEmail: "settlement@example.com",
+        status: "COMPLETED",
+        paymentStatus: "PAID",
+        paymentReference: "devpay_settlement",
+        settledAt: null,
+        currency: "USD",
+        priceCents: 88000,
+        provider: {
+          email: "creator@example.com"
+        },
+        deliveries: [],
+        consultation: {
+          agentPackage: {
+            name: "Research Assistant"
+          }
+        }
       }
     ] as never);
     vi.mocked(prisma.serviceOrder.count)
@@ -233,6 +253,10 @@ describe("admin pages", () => {
     expect(adminHtml).toContain("恢复进行中");
     expect(adminHtml).toContain("恢复待验收");
     expect(adminHtml).toContain("取消订单");
+    expect(adminHtml).toContain("待结算订单");
+    expect(adminHtml).toContain("Settlement package");
+    expect(adminHtml).toContain("结算备注");
+    expect(adminHtml).toContain("标记已结算");
     expect(whitelistHtml).toContain("白名单管理");
     expect(whitelistHtml).toContain("creator@example.com");
   });

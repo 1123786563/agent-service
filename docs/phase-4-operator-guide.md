@@ -45,8 +45,9 @@
    - orders
    - completed orders
 3. Review `支付异常订单` and use `重置为待支付` when a buyer needs to retry.
-4. Review `争议订单` and resolve each order back to `IN_PROGRESS`, `DELIVERED`, or `CANCELLED`.
-5. Use `运营分析` to open `/admin/analytics`.
+4. Review `待结算订单` and use `标记已结算` after an off-platform payout is completed.
+5. Review `争议订单` and resolve each order back to `IN_PROGRESS`, `DELIVERED`, or `CANCELLED`.
+6. Use `运营分析` to open `/admin/analytics`.
 
 ## Admin Analytics
 
@@ -56,8 +57,11 @@
    - consultation rate
    - order rate
    - completion rate
+   - settled order count
+   - unsettled revenue
 3. Review `高转化智能体` for package-level rankings.
 4. Review `创作者效率` for creator-level rankings.
+5. Review `结算概览` for settled and unsettled payout totals.
 
 ## Phase 4 Limits
 

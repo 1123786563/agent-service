@@ -21,7 +21,7 @@ export default async function AdminAnalyticsPage() {
     redirect("/login");
   }
 
-  const [packages, consultationCount, orderCount, completedOrderCount] = await Promise.all([
+  const [packages, consultationCount, orderCount, completedOrderCount, settledOrders] = await Promise.all([
     prisma.agentPackage.findMany({
       where: {
         status: "PUBLISHED"
@@ -47,6 +47,16 @@ export default async function AdminAnalyticsPage() {
     prisma.serviceOrder.count({
       where: {
         status: "COMPLETED"
+      }
+    }),
+    prisma.serviceOrder.findMany({
+      where: {
+        status: "COMPLETED",
+        paymentStatus: "PAID"
+      },
+      select: {
+        priceCents: true,
+        settledAt: true
       }
     })
   ]);
@@ -83,6 +93,9 @@ export default async function AdminAnalyticsPage() {
   });
 
   const totalDownloads = packages.reduce((sum, agentPackage) => sum + agentPackage.downloadCount, 0);
+  const settledRevenueCents = settledOrders.reduce((sum, order) => sum + (order.settledAt ? order.priceCents : 0), 0);
+  const unsettledRevenueCents = settledOrders.reduce((sum, order) => sum + (!order.settledAt ? order.priceCents : 0), 0);
+  const settledOrderCount = settledOrders.filter((order) => Boolean(order.settledAt)).length;
   const packageRows = packages
     .map((agentPackage) => ({
       agentPackage,
@@ -156,6 +169,16 @@ export default async function AdminAnalyticsPage() {
           <p className="eyebrow">Complete</p>
           <h2>{completedOrderCount}</h2>
           <p className="muted">完成率 {toPercent(completedOrderCount, orderCount)}%</p>
+        </article>
+        <article className="panel">
+          <p className="eyebrow">Settled</p>
+          <h2>{settledOrderCount}</h2>
+          <p className="muted">已结算订单</p>
+        </article>
+        <article className="panel">
+          <p className="eyebrow">Unsettled</p>
+          <h2>{unsettledRevenueCents}</h2>
+          <p className="muted">待结算金额（分）</p>
         </article>
       </div>
 
@@ -234,6 +257,23 @@ export default async function AdminAnalyticsPage() {
             <p className="muted">服务商完成单：{creator.completedProviderOrders}</p>
           </article>
         ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>结算概览</h2>
+          <p className="muted">查看已完成订单中已结算和待结算金额。</p>
+        </div>
+      </div>
+      <div className="grid">
+        <article className="panel">
+          <h3>已结算金额</h3>
+          <p className="muted">{settledRevenueCents} 分</p>
+        </article>
+        <article className="panel">
+          <h3>待结算金额</h3>
+          <p className="muted">{unsettledRevenueCents} 分</p>
+        </article>
       </div>
     </section>
   );

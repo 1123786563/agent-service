@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PaymentStatus, UserRole } from "@prisma/client";
-import { archiveAgentPackage, resetOrderPayment, resolveDisputedOrder } from "./actions";
+import { archiveAgentPackage, markOrderSettled, resetOrderPayment, resolveDisputedOrder } from "./actions";
 import { getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -75,6 +75,9 @@ export default async function AdminPage() {
   });
   const failedPaymentOrders = orders.filter((order) => order.paymentStatus === PaymentStatus.FAILED);
   const disputedOrders = orders.filter((order) => order.status === "DISPUTED");
+  const unsettledCompletedOrders = orders.filter((order) => {
+    return order.status === "COMPLETED" && order.paymentStatus === PaymentStatus.PAID && !order.settledAt;
+  });
   const creatorRows = await prisma.user.findMany({
     where: {
       role: UserRole.CREATOR
@@ -303,6 +306,39 @@ export default async function AdminPage() {
             <form action={resetOrderPayment}>
               <input name="orderId" type="hidden" value={order.id} />
               <button className="button secondary" type="submit">重置为待支付</button>
+            </form>
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>待结算订单</h2>
+          <p className="muted">标记已完成且已收款的订单已结算。</p>
+        </div>
+      </div>
+      <div className="list">
+        {unsettledCompletedOrders.length === 0 ? (
+          <article className="panel">
+            <p className="muted">暂无待结算订单。</p>
+          </article>
+        ) : unsettledCompletedOrders.map((order) => (
+          <article className="panel" key={order.id}>
+            <h3>{order.title}</h3>
+            <p className="muted">
+              买家：{order.buyerEmail} · 服务商：{order.provider.email}
+            </p>
+            <p className="muted">
+              订单状态：{order.status} · 支付状态：{order.paymentStatus} · 金额：
+              {order.currency} {order.priceCents}
+            </p>
+            <form action={markOrderSettled} className="form">
+              <input name="orderId" type="hidden" value={order.id} />
+              <label>
+                结算备注
+                <input name="settlementReference" placeholder="bank-transfer-2026-05-01" type="text" />
+              </label>
+              <button className="button secondary" type="submit">标记已结算</button>
             </form>
           </article>
         ))}

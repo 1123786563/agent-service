@@ -21,7 +21,8 @@ vi.mock("@/server/db", () => ({
       count: vi.fn()
     },
     serviceOrder: {
-      count: vi.fn()
+      count: vi.fn(),
+      findMany: vi.fn()
     },
     user: {
       findMany: vi.fn()
@@ -85,6 +86,16 @@ describe("admin analytics page", () => {
     vi.mocked(prisma.serviceOrder.count)
       .mockResolvedValueOnce(2 as never)
       .mockResolvedValueOnce(1 as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        priceCents: 5000,
+        settledAt: new Date("2026-05-01T00:00:00.000Z")
+      },
+      {
+        priceCents: 7000,
+        settledAt: null
+      }
+    ] as never);
     vi.mocked(prisma.user.findMany).mockResolvedValue([
       {
         id: "creator-1",
@@ -125,12 +136,17 @@ describe("admin analytics page", () => {
     expect(html).toContain("咨询率 10%");
     expect(html).toContain("下单率 67%");
     expect(html).toContain("完成率 50%");
+    expect(html).toContain("已结算订单");
+    expect(html).toContain("待结算金额（分）");
     expect(html).toContain("漏斗明细");
     expect(html).toContain("高转化智能体");
     expect(html).toContain("Research Assistant");
     expect(html).toContain("/agents/research-assistant");
     expect(html).toContain("综合分：70");
     expect(html).toContain("创作者效率");
+    expect(html).toContain("结算概览");
+    expect(html).toContain("5000 分");
+    expect(html).toContain("7000 分");
     expect(html).toContain("/creators/creator-1");
     expect(html).toContain("返回概览");
   });

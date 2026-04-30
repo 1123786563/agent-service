@@ -94,4 +94,35 @@ describe("creator orders page", () => {
     expect(html).toContain("/api/orders/order-1/dispute");
     expect(html).toContain("发起争议");
   });
+
+  it("shows settlement state for completed orders", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      id: "creator-1",
+      whitelistStatus: WhitelistStatus.ACTIVE
+    } as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        id: "order-2",
+        title: "Settlement order",
+        scope: "Completed work",
+        currency: "USD",
+        priceCents: 50000,
+        status: ServiceOrderStatus.COMPLETED,
+        paymentStatus: PaymentStatus.PAID,
+        settledAt: null,
+        buyerEmail: "buyer@example.com",
+        deliveries: [],
+        consultation: {
+          agentPackage: {
+            name: "Research Assistant"
+          }
+        }
+      }
+    ] as never);
+
+    const html = renderToStaticMarkup(await CreatorOrdersPage());
+
+    expect(html).toContain("Settlement order");
+    expect(html).toContain("结算状态：待结算");
+  });
 });

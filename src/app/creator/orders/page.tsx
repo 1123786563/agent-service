@@ -69,6 +69,11 @@ export default async function CreatorOrdersPage() {
             <p className="muted">
               {order.currency} {order.priceCents} · 支付状态：{order.paymentStatus}
             </p>
+            {order.status === "COMPLETED" ? (
+              <p className="muted">
+                结算状态：{order.settledAt ? `已结算 · ${order.settledAt.toLocaleString("zh-CN")}` : "待结算"}
+              </p>
+            ) : null}
             {order.deliveries[0] ? (
               <p className="muted">最近交付：{order.deliveries[0].fileName}</p>
             ) : null}

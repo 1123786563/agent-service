@@ -98,3 +98,25 @@ export async function resolveDisputedOrder(formData: FormData) {
   revalidatePath("/account/orders");
   revalidatePath("/creator/orders");
 }
+
+export async function markOrderSettled(formData: FormData) {
+  await requireAdmin();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const settlementReference = String(formData.get("settlementReference") ?? "").trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  await prisma.serviceOrder.update({
+    where: { id: orderId },
+    data: {
+      settledAt: new Date(),
+      settlementReference: settlementReference || null
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/creator/orders");
+}
