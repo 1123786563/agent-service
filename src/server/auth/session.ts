@@ -6,6 +6,37 @@ import { prisma } from "@/server/db";
 const SESSION_COOKIE = "hermes_market_session";
 const SESSION_DAYS = 30;
 
+type SessionCreateStore = {
+  create(args: {
+    data: {
+      userId: string;
+      tokenHash: string;
+      expiresAt: Date;
+    };
+    select: {
+      id: true;
+    };
+  }): Promise<{ id: string }>;
+};
+
+type SessionDeleteStore = {
+  deleteMany(args: {
+    where: {
+      id: string;
+    };
+  }): Promise<{ count: number }>;
+};
+
+type SessionCookieStore = Awaited<ReturnType<typeof cookies>>;
+
+export type SessionRecord = {
+  id: string;
+  userId: string;
+  token: string;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
 export function createSessionTokenHash(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
@@ -22,26 +53,75 @@ export function isAdminEmail(email: string, adminEmails = process.env.ADMIN_EMAI
     .includes(email.toLowerCase());
 }
 
-export async function createSession(userId: string) {
-  const token = createOpaqueToken();
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+export function buildSessionRecord(
+  userId: string,
+  options: {
+    now?: Date;
+    token?: string;
+  } = {}
+) {
+  const token = options.token ?? createOpaqueToken();
+  const issuedAt = options.now ?? new Date();
+  const expiresAt = new Date(issuedAt.getTime() + SESSION_DAYS * 24 * 60 * 60 * 1000);
 
-  await prisma.session.create({
+  return {
+    userId,
+    token,
+    tokenHash: createSessionTokenHash(token),
+    expiresAt
+  };
+}
+
+export async function createSessionRecord(sessionStore: SessionCreateStore, userId: string) {
+  const sessionRecord = buildSessionRecord(userId);
+  const session = await sessionStore.create({
     data: {
-      userId,
-      tokenHash: createSessionTokenHash(token),
-      expiresAt
-    }
+      userId: sessionRecord.userId,
+      tokenHash: sessionRecord.tokenHash,
+      expiresAt: sessionRecord.expiresAt
+    },
+    select: { id: true }
   });
 
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
+  return {
+    id: session.id,
+    ...sessionRecord
+  } satisfies SessionRecord;
+}
+
+export async function deleteSessionRecord(sessionStore: SessionDeleteStore, sessionId: string) {
+  await sessionStore.deleteMany({
+    where: { id: sessionId }
+  });
+}
+
+export function writeSessionCookie(
+  cookieStore: Pick<SessionCookieStore, "set">,
+  session: Pick<SessionRecord, "token" | "expiresAt">
+) {
+  cookieStore.set(SESSION_COOKIE, session.token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    expires: expiresAt
+    expires: session.expiresAt
   });
+}
+
+export async function setSessionCookie(session: Pick<SessionRecord, "token" | "expiresAt">) {
+  const cookieStore = await cookies();
+  writeSessionCookie(cookieStore, session);
+}
+
+export async function createSession(userId: string) {
+  const session = await createSessionRecord(prisma.session, userId);
+
+  try {
+    await setSessionCookie(session);
+  } catch (error) {
+    await deleteSessionRecord(prisma.session, session.id);
+    throw error;
+  }
 }
 
 export async function getCurrentUser() {

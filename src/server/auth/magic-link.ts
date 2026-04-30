@@ -2,22 +2,48 @@ import { UserRole, WhitelistStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { sendDevLoginEmail } from "@/server/mail/dev-mailer";
-import { createOpaqueToken, createSession, createSessionTokenHash, isAdminEmail } from "./session";
+import {
+  createOpaqueToken,
+  createSessionRecord,
+  createSessionTokenHash,
+  deleteSessionRecord,
+  isAdminEmail,
+  setSessionCookie
+} from "./session";
 
 const MAGIC_LINK_MINUTES = 15;
 const magicLinkEmailSchema = z.string().trim().min(1).email();
+const AUTH_FLOW_ERROR_MESSAGES = {
+  "invalid-email": "Email address is invalid",
+  "invalid-token": "Login link is invalid or expired"
+} as const;
+const LOGIN_STATUS_MESSAGES = {
+  sent: "登录链接已发送，请检查邮箱。",
+  "invalid-email": "请输入有效的邮箱地址。",
+  "invalid-token": "登录链接无效或已过期，请重新获取。",
+  "missing-token": "登录链接缺少必要参数，请重新获取。"
+} as const;
 
 export type AuthFlowErrorCode = "invalid-email" | "invalid-token";
+export type LoginStatusCode = "sent" | AuthFlowErrorCode | "missing-token";
 
 export class AuthFlowError extends Error {
   constructor(public readonly code: AuthFlowErrorCode) {
-    super(code === "invalid-email" ? "Email address is invalid" : "Login link is invalid or expired");
+    super(getAuthFlowErrorMessage(code));
     this.name = "AuthFlowError";
   }
 }
 
 export function isAuthFlowError(error: unknown): error is AuthFlowError {
   return error instanceof AuthFlowError;
+}
+
+export function getAuthFlowErrorMessage(code: AuthFlowErrorCode) {
+  return AUTH_FLOW_ERROR_MESSAGES[code];
+}
+
+export function getLoginStatusMessage(code: LoginStatusCode) {
+  return LOGIN_STATUS_MESSAGES[code];
 }
 
 export function normalizeMagicLinkEmail(emailInput: string) {
@@ -72,7 +98,7 @@ export async function consumeMagicLink(rawToken: string) {
 
   const tokenHash = createSessionTokenHash(token);
   const consumedAt = new Date();
-  const userId = await prisma.$transaction(async (tx) => {
+  const pendingSession = await prisma.$transaction(async (tx) => {
     const result = await tx.magicLinkToken.updateMany({
       where: {
         tokenHash,
@@ -95,8 +121,38 @@ export async function consumeMagicLink(rawToken: string) {
       throw new AuthFlowError("invalid-token");
     }
 
-    return magicLinkToken.userId;
+    const session = await createSessionRecord(tx.session, magicLinkToken.userId);
+
+    return {
+      sessionId: session.id,
+      token: session.token,
+      expiresAt: session.expiresAt
+    };
   });
 
-  await createSession(userId);
+  try {
+    await setSessionCookie(pendingSession);
+  } catch (error) {
+    await rollbackConsumedMagicLink(tokenHash, consumedAt, pendingSession.sessionId);
+    throw error;
+  }
+}
+
+async function rollbackConsumedMagicLink(tokenHash: string, consumedAt: Date, sessionId: string) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      await deleteSessionRecord(tx.session, sessionId);
+      await tx.magicLinkToken.updateMany({
+        where: {
+          tokenHash,
+          consumedAt
+        },
+        data: {
+          consumedAt: null
+        }
+      });
+    });
+  } catch {
+    // Best-effort cleanup only.
+  }
 }
