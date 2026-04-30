@@ -169,6 +169,7 @@ describe("admin pages", () => {
     const whitelistHtml = renderToStaticMarkup(await WhitelistPage());
 
     expect(adminHtml).toContain("管理后台");
+    expect(adminHtml).toContain("/admin/analytics");
     expect(adminHtml).toContain("Published");
     expect(adminHtml).toContain("Downloads");
     expect(adminHtml).toContain("21");

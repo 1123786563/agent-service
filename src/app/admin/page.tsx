@@ -121,7 +121,10 @@ export default async function AdminPage() {
           <h1>管理后台</h1>
           <p className="lede">管理白名单、查看 ZIP 风险结果、下架异常智能体。</p>
         </div>
-        <Link className="button secondary" href="/admin/whitelist">白名单</Link>
+        <div className="actions" style={{ marginTop: 0 }}>
+          <Link className="button secondary" href="/admin/analytics">运营分析</Link>
+          <Link className="button secondary" href="/admin/whitelist">白名单</Link>
+        </div>
       </div>
       <div className="grid">
         <article className="panel">
