@@ -40,6 +40,15 @@
    - submitted time
    - accepted time or `待验收`
 
+## Dispute Handling
+
+1. Buyer or creator can open the order view and click `发起争议`.
+2. The order moves to `DISPUTED`.
+3. Admin opens `/admin` and uses the dispute controls to:
+   - restore `IN_PROGRESS`
+   - restore `DELIVERED`
+   - move the order to `CANCELLED`
+
 ## Storage Notes
 
 - Delivery files are stored separately from agent ZIP uploads.
@@ -49,7 +58,7 @@
 
 ## Phase 3 Limits
 
-- No refunds, disputes, or arbitration workflow.
+- No refunds or automated arbitration workflow.
 - No milestone delivery.
 - No automatic acceptance timeout.
 - No rich delivery preview.

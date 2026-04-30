@@ -44,7 +44,9 @@
    - consultations
    - orders
    - completed orders
-3. Use `运营分析` to open `/admin/analytics`.
+3. Review `支付异常订单` and use `重置为待支付` when a buyer needs to retry.
+4. Review `争议订单` and resolve each order back to `IN_PROGRESS`, `DELIVERED`, or `CANCELLED`.
+5. Use `运营分析` to open `/admin/analytics`.
 
 ## Admin Analytics
 
