@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { WhitelistStatus } from "@prisma/client";
 import { OrderStatusPill } from "@/components/order-status-pill";
+import { UploadDeliveryForm } from "@/components/upload-delivery-form";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 
@@ -30,6 +31,11 @@ export default async function CreatorOrdersPage() {
       consultation: {
         include: {
           agentPackage: true
+        }
+      },
+      deliveries: {
+        orderBy: {
+          submittedAt: "desc"
         }
       }
     },
@@ -62,6 +68,15 @@ export default async function CreatorOrdersPage() {
             <p className="muted">
               {order.currency} {order.priceCents} · 支付状态：{order.paymentStatus}
             </p>
+            {order.deliveries[0] ? (
+              <p className="muted">最近交付：{order.deliveries[0].fileName}</p>
+            ) : null}
+            {order.status === "IN_PROGRESS" ? (
+              <section>
+                <h3>上传交付物</h3>
+                <UploadDeliveryForm orderId={order.id} />
+              </section>
+            ) : null}
           </article>
         ))}
       </div>

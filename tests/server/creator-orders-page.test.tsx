@@ -40,6 +40,7 @@ describe("creator orders page", () => {
         status: ServiceOrderStatus.PENDING_PAYMENT,
         paymentStatus: PaymentStatus.UNPAID,
         buyerEmail: "buyer@example.com",
+        deliveries: [],
         consultation: {
           agentPackage: {
             name: "Research Assistant"
@@ -54,5 +55,41 @@ describe("creator orders page", () => {
     expect(html).toContain("Research Assistant");
     expect(html).toContain("buyer@example.com");
     expect(html).toContain("待支付");
+  });
+
+  it("renders delivery upload controls for in-progress orders", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      id: "creator-1",
+      whitelistStatus: WhitelistStatus.ACTIVE
+    } as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        id: "order-1",
+        title: "Research Assistant 服务订单",
+        scope: "Deploy for 20 internal users",
+        currency: "USD",
+        priceCents: 50000,
+        status: ServiceOrderStatus.IN_PROGRESS,
+        paymentStatus: PaymentStatus.PAID,
+        buyerEmail: "buyer@example.com",
+        deliveries: [
+          {
+            fileName: "handoff.txt"
+          }
+        ],
+        consultation: {
+          agentPackage: {
+            name: "Research Assistant"
+          }
+        }
+      }
+    ] as never);
+
+    const html = renderToStaticMarkup(await CreatorOrdersPage());
+
+    expect(html).toContain("进行中");
+    expect(html).toContain("上传交付物");
+    expect(html).toContain("/api/orders/order-1/deliveries");
+    expect(html).toContain("handoff.txt");
   });
 });
