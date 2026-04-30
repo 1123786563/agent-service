@@ -73,5 +73,7 @@ describe("creator page", () => {
     expect(html).toContain("Research Assistant");
     expect(html).toContain("已发布");
     expect(html).toContain("/agents/research-assistant-1-0-0");
+    expect(html).toContain("/creator/consultations");
+    expect(html).toContain("/creator/orders");
   });
 });

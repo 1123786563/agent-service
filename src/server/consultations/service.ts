@@ -161,6 +161,17 @@ export async function listConsultationsForProvider(providerId: string, deps: Con
   return deps.store.findManyForProvider(normalizedProviderId);
 }
 
+export async function getConsultationById(consultationId: string, deps: ConsultationServiceDeps = defaultDeps) {
+  const normalizedConsultationId = consultationId.trim();
+  if (!normalizedConsultationId) {
+    throw new Error("Consultation ID is required");
+  }
+
+  return deps.store.findUnique({
+    where: { id: normalizedConsultationId }
+  });
+}
+
 export async function updateConsultation(
   input: UpdateConsultationInput,
   deps: ConsultationServiceDeps = defaultDeps

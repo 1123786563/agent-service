@@ -38,7 +38,11 @@ export default async function CreatorPage() {
           <h1>创作者工作台</h1>
           <p className="lede">上传 ZIP 后，平台会校验 agent.json、skill 路径和工作流引用。</p>
         </div>
-        <Link className="button" href="/creator/agents/new">上传智能体</Link>
+        <div className="actions">
+          <Link className="button secondary" href="/creator/consultations">咨询列表</Link>
+          <Link className="button secondary" href="/creator/orders">订单列表</Link>
+          <Link className="button" href="/creator/agents/new">上传智能体</Link>
+        </div>
       </div>
 
       <div className="grid">

@@ -1,3 +1,5 @@
+import React from "react";
+
 export type ConsultationStatusValue =
   | "NEW"
   | "IN_DISCUSSION"
