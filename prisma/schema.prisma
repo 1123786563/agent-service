@@ -27,6 +27,29 @@ enum AgentPackageStatus {
   ARCHIVED
 }
 
+enum ConsultationStatus {
+  NEW
+  IN_DISCUSSION
+  SCOPED
+  ORDER_CREATED
+  CLOSED
+}
+
+enum ServiceOrderStatus {
+  PENDING_PAYMENT
+  PAID
+  IN_PROGRESS
+  CANCELLED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+}
+
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -38,6 +61,10 @@ model User {
   packages        AgentPackage[]
   sessions        Session[]
   magicLinkTokens MagicLinkToken[]
+  buyerConsultations Consultation[] @relation("BuyerConsultations")
+  providerConsultations Consultation[] @relation("ProviderConsultations")
+  buyerOrders      ServiceOrder[]  @relation("BuyerOrders")
+  providerOrders   ServiceOrder[]  @relation("ProviderOrders")
 }
 
 model MagicLinkToken {
@@ -86,6 +113,7 @@ model AgentPackage {
   owner            User               @relation(fields: [ownerId], references: [id])
   skills           Skill[]
   workflows        Workflow[]
+  consultations    Consultation[]
 
   @@index([ownerId, createdAt])
   @@index([status, publishedAt])
@@ -113,4 +141,55 @@ model Workflow {
   agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
 
   @@index([agentPackageId])
+}
+
+model Consultation {
+  id             String             @id @default(cuid())
+  agentPackageId String
+  providerId     String
+  buyerEmail     String
+  buyerUserId    String?
+  requirement    String
+  status         ConsultationStatus @default(NEW)
+  scopedSummary  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  agentPackage   AgentPackage       @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+  provider       User               @relation("ProviderConsultations", fields: [providerId], references: [id], onDelete: Cascade)
+  buyerUser      User?              @relation("BuyerConsultations", fields: [buyerUserId], references: [id], onDelete: SetNull)
+  orders         ServiceOrder[]
+
+  @@index([agentPackageId])
+  @@index([providerId, createdAt])
+  @@index([buyerEmail, createdAt])
+  @@index([buyerUserId])
+}
+
+model ServiceOrder {
+  id               String             @id @default(cuid())
+  consultationId   String
+  buyerEmail       String
+  buyerUserId      String?
+  providerId       String
+  title            String
+  scope            String
+  priceCents       Int
+  currency         String
+  status           ServiceOrderStatus @default(PENDING_PAYMENT)
+  paymentStatus    PaymentStatus      @default(UNPAID)
+  paymentProvider  String
+  paymentReference String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  consultation     Consultation       @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  buyerUser        User?              @relation("BuyerOrders", fields: [buyerUserId], references: [id], onDelete: SetNull)
+  provider         User               @relation("ProviderOrders", fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+  @@index([providerId, createdAt])
+  @@index([buyerEmail, createdAt])
+  @@index([buyerUserId])
+  @@index([status, paymentStatus])
 }
