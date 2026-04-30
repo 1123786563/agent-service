@@ -39,6 +39,8 @@ enum ServiceOrderStatus {
   PENDING_PAYMENT
   PAID
   IN_PROGRESS
+  DELIVERED
+  COMPLETED
   CANCELLED
   DISPUTED
 }
@@ -65,6 +67,7 @@ model User {
   providerConsultations Consultation[] @relation("ProviderConsultations")
   buyerOrders      ServiceOrder[]  @relation("BuyerOrders")
   providerOrders   ServiceOrder[]  @relation("ProviderOrders")
+  providerDeliveries Delivery[]    @relation("ProviderDeliveries")
 }
 
 model MagicLinkToken {
@@ -186,10 +189,30 @@ model ServiceOrder {
   consultation     Consultation       @relation(fields: [consultationId], references: [id], onDelete: Cascade)
   buyerUser        User?              @relation("BuyerOrders", fields: [buyerUserId], references: [id], onDelete: SetNull)
   provider         User               @relation("ProviderOrders", fields: [providerId], references: [id], onDelete: Cascade)
+  deliveries       Delivery[]
 
   @@index([consultationId])
   @@index([providerId, createdAt])
   @@index([buyerEmail, createdAt])
   @@index([buyerUserId])
   @@index([status, paymentStatus])
+}
+
+model Delivery {
+  id            String       @id @default(cuid())
+  serviceOrderId String
+  providerId    String
+  fileUrl       String
+  fileName      String
+  fileSizeBytes Int
+  note          String?
+  submittedAt   DateTime     @default(now())
+  acceptedAt    DateTime?
+  createdAt     DateTime     @default(now())
+
+  serviceOrder  ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  provider      User         @relation("ProviderDeliveries", fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([serviceOrderId, submittedAt])
+  @@index([providerId, submittedAt])
 }
