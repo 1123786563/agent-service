@@ -103,4 +103,36 @@ describe("account orders page", () => {
     expect(html).toContain("/api/orders/order-1/complete");
     expect(html).toContain("确认完成");
   });
+
+  it("lets buyers retry failed payments", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      email: "buyer@example.com"
+    } as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        id: "order-2",
+        title: "Recovery package",
+        scope: "Retry payment flow",
+        currency: "USD",
+        priceCents: 12000,
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentStatus: PaymentStatus.FAILED,
+        deliveries: [],
+        consultation: {
+          agentPackage: {
+            name: "Ops Copilot"
+          }
+        },
+        provider: {
+          email: "ops@example.com"
+        }
+      }
+    ] as never);
+
+    const html = renderToStaticMarkup(await AccountOrdersPage());
+
+    expect(html).toContain("上一次支付失败，请重新发起支付。");
+    expect(html).toContain("/api/orders/order-2/pay");
+    expect(html).toContain("去支付");
+  });
 });

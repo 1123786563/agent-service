@@ -7,14 +7,15 @@ vi.mock("@/server/auth/session", () => ({
 
 vi.mock("@/server/orders/service", () => ({
   getServiceOrderById: vi.fn(),
-  markServiceOrderPaid: vi.fn()
+  markServiceOrderPaid: vi.fn(),
+  markServiceOrderPaymentFailed: vi.fn()
 }));
 
 import { POST as createPaymentSessionRoute } from "@/app/api/orders/[id]/pay/route";
 import { GET as completeDevPaymentRoute } from "@/app/api/payments/dev/complete/route";
 import { POST as paymentWebhookRoute } from "@/app/api/payments/webhook/route";
 import { getCurrentUser } from "@/server/auth/session";
-import { getServiceOrderById, markServiceOrderPaid } from "@/server/orders/service";
+import { getServiceOrderById, markServiceOrderPaid, markServiceOrderPaymentFailed } from "@/server/orders/service";
 
 describe("payment routes", () => {
   it("redirects a buyer into the dev checkout flow for a payable order", async () => {
@@ -98,6 +99,39 @@ describe("payment routes", () => {
     });
   });
 
+  it("applies a dev webhook failed event through the shared payment path", async () => {
+    vi.mocked(markServiceOrderPaymentFailed).mockResolvedValue({
+      id: "order-1",
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.FAILED
+    } as never);
+
+    const response = await paymentWebhookRoute(new Request("http://localhost/api/payments/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "payment.failed",
+        orderId: "order-1",
+        paymentReference: "devpay_failed"
+      })
+    }));
+
+    expect(markServiceOrderPaymentFailed).toHaveBeenCalledWith({
+      orderId: "order-1",
+      paymentReference: "devpay_failed"
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      type: "payment.failed",
+      orderId: "order-1",
+      orderStatus: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.FAILED
+    });
+  });
+
   it("completes a dev payment and moves the order into progress", async () => {
     vi.mocked(markServiceOrderPaid).mockResolvedValue({
       id: "order-1",
@@ -116,9 +150,35 @@ describe("payment routes", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       ok: true,
+      type: "payment.succeeded",
       orderId: "order-1",
       orderStatus: ServiceOrderStatus.IN_PROGRESS,
       paymentStatus: PaymentStatus.PAID
+    });
+  });
+
+  it("simulates a failed dev payment and keeps the order pending", async () => {
+    vi.mocked(markServiceOrderPaymentFailed).mockResolvedValue({
+      id: "order-1",
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.FAILED
+    } as never);
+
+    const response = await completeDevPaymentRoute(
+      new Request("http://localhost/api/payments/dev/complete?orderId=order-1&paymentReference=devpay_456&outcome=failed")
+    );
+
+    expect(markServiceOrderPaymentFailed).toHaveBeenCalledWith({
+      orderId: "order-1",
+      paymentReference: "devpay_456"
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      type: "payment.failed",
+      orderId: "order-1",
+      orderStatus: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.FAILED
     });
   });
 });

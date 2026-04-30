@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AgentPackageStatus, UserRole, WhitelistStatus } from "@prisma/client";
+import { AgentPackageStatus, PaymentStatus, ServiceOrderStatus, UserRole, WhitelistStatus } from "@prisma/client";
 import { requireAdmin } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 
@@ -44,4 +44,27 @@ export async function archiveAgentPackage(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/agents");
+}
+
+export async function resetOrderPayment(formData: FormData) {
+  await requireAdmin();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  await prisma.serviceOrder.update({
+    where: { id: orderId },
+    data: {
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.UNPAID,
+      paymentReference: null
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/account/orders");
+  revalidatePath("/creator/orders");
 }

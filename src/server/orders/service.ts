@@ -62,6 +62,11 @@ export type MarkServiceOrderPaidInput = {
   paymentReference?: string | null;
 };
 
+export type MarkServiceOrderPaymentFailedInput = {
+  orderId: string;
+  paymentReference?: string | null;
+};
+
 const defaultDeps: OrderServiceDeps = {
   store: {
     findConsultationById(id) {
@@ -273,6 +278,43 @@ export async function markServiceOrderPaid(
     data: {
       paymentStatus: PaymentStatus.PAID,
       status: ServiceOrderStatus.IN_PROGRESS,
+      paymentReference: input.paymentReference ?? order.paymentReference
+    }
+  });
+}
+
+export async function markServiceOrderPaymentFailed(
+  input: MarkServiceOrderPaymentFailedInput,
+  deps: OrderServiceDeps = defaultDeps
+) {
+  const orderId = input.orderId.trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  const order = await deps.store.findUniqueById(orderId);
+  if (!order) {
+    throw new Error("Service order not found");
+  }
+
+  if (
+    order.status === ServiceOrderStatus.CANCELLED ||
+    order.status === ServiceOrderStatus.DISPUTED ||
+    order.status === ServiceOrderStatus.DELIVERED ||
+    order.status === ServiceOrderStatus.COMPLETED
+  ) {
+    throw new Error(`Cannot mark ${order.status.toLowerCase()} order as failed`);
+  }
+
+  if (order.paymentStatus === PaymentStatus.FAILED && order.status === ServiceOrderStatus.PENDING_PAYMENT) {
+    return order;
+  }
+
+  return deps.store.updateOrder({
+    where: { id: orderId },
+    data: {
+      paymentStatus: PaymentStatus.FAILED,
+      status: ServiceOrderStatus.PENDING_PAYMENT,
       paymentReference: input.paymentReference ?? order.paymentReference
     }
   });

@@ -1,17 +1,26 @@
 import { applyPaymentEvent } from "@/server/payments/adapter";
-import { createDevPaymentSucceededEvent } from "@/server/payments/dev-adapter";
+import { createDevPaymentFailedEvent, createDevPaymentSucceededEvent } from "@/server/payments/dev-adapter";
 
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const event = createDevPaymentSucceededEvent({
-      orderId: url.searchParams.get("orderId") ?? "",
-      paymentReference: url.searchParams.get("paymentReference")
-    });
+    const orderId = url.searchParams.get("orderId") ?? "";
+    const paymentReference = url.searchParams.get("paymentReference");
+    const outcome = (url.searchParams.get("outcome") ?? "succeeded").trim().toLowerCase();
+    const event = outcome === "failed"
+      ? createDevPaymentFailedEvent({
+          orderId,
+          paymentReference
+        })
+      : createDevPaymentSucceededEvent({
+          orderId,
+          paymentReference
+        });
     const order = await applyPaymentEvent(event);
 
     return Response.json({
       ok: true,
+      type: event.type,
       orderId: event.orderId,
       orderStatus: order?.status ?? null,
       paymentStatus: order?.paymentStatus ?? null

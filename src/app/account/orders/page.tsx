@@ -61,10 +61,16 @@ export default async function AccountOrdersPage() {
               {order.currency} {order.priceCents} · 支付状态：{order.paymentStatus}
             </p>
 
-            {order.status === ServiceOrderStatus.PENDING_PAYMENT && order.paymentStatus === PaymentStatus.UNPAID ? (
+            {order.status === ServiceOrderStatus.PENDING_PAYMENT &&
+            (order.paymentStatus === PaymentStatus.UNPAID || order.paymentStatus === PaymentStatus.FAILED) ? (
+              <section>
+                {order.paymentStatus === PaymentStatus.FAILED ? (
+                  <p className="muted">上一次支付失败，请重新发起支付。</p>
+                ) : null}
               <form action={`/api/orders/${order.id}/pay`} method="post">
                 <button className="button" type="submit">去支付</button>
               </form>
+              </section>
             ) : null}
 
             {order.deliveries[0] ? (

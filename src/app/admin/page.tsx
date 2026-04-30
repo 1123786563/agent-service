@@ -1,8 +1,8 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UserRole } from "@prisma/client";
-import { archiveAgentPackage } from "./actions";
+import { PaymentStatus, UserRole } from "@prisma/client";
+import { archiveAgentPackage, resetOrderPayment } from "./actions";
 import { getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -73,6 +73,7 @@ export default async function AdminPage() {
     orderBy: { createdAt: "desc" },
     take: 10
   });
+  const failedPaymentOrders = orders.filter((order) => order.paymentStatus === PaymentStatus.FAILED);
   const creatorRows = await prisma.user.findMany({
     where: {
       role: UserRole.CREATOR
@@ -274,6 +275,34 @@ export default async function AdminPage() {
             ) : (
               <p className="muted">最近交付：暂无</p>
             )}
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>支付异常订单</h2>
+          <p className="muted">处理失败支付并重置为可重试状态。</p>
+        </div>
+      </div>
+      <div className="list">
+        {failedPaymentOrders.length === 0 ? (
+          <article className="panel">
+            <p className="muted">暂无支付异常订单。</p>
+          </article>
+        ) : failedPaymentOrders.map((order) => (
+          <article className="panel" key={order.id}>
+            <h3>{order.title}</h3>
+            <p className="muted">
+              买家：{order.buyerEmail} · 服务商：{order.provider.email}
+            </p>
+            <p className="muted">
+              订单状态：{order.status} · 支付状态：{order.paymentStatus} · 支付引用：{order.paymentReference ?? "暂无"}
+            </p>
+            <form action={resetOrderPayment}>
+              <input name="orderId" type="hidden" value={order.id} />
+              <button className="button secondary" type="submit">重置为待支付</button>
+            </form>
           </article>
         ))}
       </div>

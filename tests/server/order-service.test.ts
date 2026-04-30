@@ -4,7 +4,8 @@ import {
   createServiceOrder,
   listServiceOrdersForBuyerEmail,
   listServiceOrdersForProvider,
-  markServiceOrderPaid
+  markServiceOrderPaid,
+  markServiceOrderPaymentFailed
 } from "@/server/orders/service";
 
 describe("order service", () => {
@@ -181,5 +182,43 @@ describe("order service", () => {
         updateOrder: vi.fn()
       }
     })).rejects.toThrow("Cannot mark cancelled order as paid");
+  });
+
+  it("marks a pending order payment as failed and keeps it payable", async () => {
+    const store = {
+      findConsultationById: vi.fn(),
+      consultationHasOrder: vi.fn(),
+      createOrderForConsultation: vi.fn(),
+      findManyForBuyerEmail: vi.fn(),
+      findManyForProvider: vi.fn(),
+      findUniqueById: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentStatus: PaymentStatus.UNPAID,
+        paymentReference: null
+      }),
+      updateOrder: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentStatus: PaymentStatus.FAILED
+      })
+    };
+
+    const order = await markServiceOrderPaymentFailed({
+      orderId: "order-1",
+      paymentReference: "pay-ref-2"
+    }, {
+      store
+    });
+
+    expect(store.updateOrder).toHaveBeenCalledWith({
+      where: { id: "order-1" },
+      data: {
+        paymentStatus: PaymentStatus.FAILED,
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentReference: "pay-ref-2"
+      }
+    });
+    expect(order.paymentStatus).toBe(PaymentStatus.FAILED);
   });
 });

@@ -1,6 +1,6 @@
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
 import { z } from "zod";
-import { getServiceOrderById, markServiceOrderPaid } from "@/server/orders/service";
+import { getServiceOrderById, markServiceOrderPaid, markServiceOrderPaymentFailed } from "@/server/orders/service";
 import { devPaymentAdapter } from "./dev-adapter";
 
 const paymentProviderSchema = z.string().trim().min(1);
@@ -53,7 +53,8 @@ export async function createPaymentSessionForOrder(orderId: string) {
     throw new Error("Service order not found");
   }
 
-  if (order.status !== ServiceOrderStatus.PENDING_PAYMENT || order.paymentStatus !== PaymentStatus.UNPAID) {
+  const payableStatuses: PaymentStatus[] = [PaymentStatus.UNPAID, PaymentStatus.FAILED];
+  if (order.status !== ServiceOrderStatus.PENDING_PAYMENT || !payableStatuses.includes(order.paymentStatus)) {
     throw new Error("Service order is not payable");
   }
 
@@ -67,7 +68,10 @@ export async function createPaymentSessionForOrder(orderId: string) {
 
 export async function applyPaymentEvent(event: PaymentEvent) {
   if (event.type === "payment.failed") {
-    return null;
+    return markServiceOrderPaymentFailed({
+      orderId: event.orderId,
+      paymentReference: event.paymentReference ?? undefined
+    });
   }
 
   return markServiceOrderPaid({

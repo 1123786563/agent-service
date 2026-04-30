@@ -39,6 +39,13 @@
 4. The app redirects to the dev payment completion route.
 5. The dev completion route marks the order as paid and transitions it to `IN_PROGRESS`.
 
+## Payment Failure Recovery
+
+1. To simulate a failed dev payment, open the dev completion route with `outcome=failed`.
+2. The order stays in `PENDING_PAYMENT` and switches to `paymentStatus=FAILED`.
+3. Buyer can reopen `/account/orders` and click `去支付` again.
+4. Admin can open `/admin` and use `重置为待支付` in the failed payment section.
+
 ## Admin Visibility
 
 1. Admin opens `/admin`.

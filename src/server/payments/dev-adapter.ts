@@ -39,6 +39,17 @@ export function createDevPaymentSucceededEvent(input: {
   };
 }
 
+export function createDevPaymentFailedEvent(input: {
+  orderId: string;
+  paymentReference?: string | null;
+}): PaymentEvent {
+  return {
+    type: "payment.failed",
+    orderId: z.string().trim().min(1).parse(input.orderId),
+    paymentReference: input.paymentReference?.trim() || createDevPaymentReference()
+  };
+}
+
 export const devPaymentAdapter: PaymentAdapter = {
   provider: "dev",
   async createPaymentSession(input) {
