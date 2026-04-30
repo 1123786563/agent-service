@@ -16,6 +16,13 @@ vi.mock("@/server/db", () => ({
   prisma: {
     agentPackage: {
       findMany: vi.fn()
+    },
+    consultation: {
+      count: vi.fn()
+    },
+    serviceOrder: {
+      count: vi.fn(),
+      findMany: vi.fn()
     }
   }
 }));
@@ -56,7 +63,15 @@ describe("creator page", () => {
         name: "Research Assistant",
         slug: "research-assistant-1-0-0",
         summary: "Summarizes research findings.",
-        status: AgentPackageStatus.PUBLISHED
+        status: AgentPackageStatus.PUBLISHED,
+        downloadCount: 12
+      }
+    ] as never);
+    vi.mocked(prisma.consultation.count).mockResolvedValue(3 as never);
+    vi.mocked(prisma.serviceOrder.count).mockResolvedValue(2 as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        priceCents: 50000
       }
     ] as never);
 
@@ -70,6 +85,12 @@ describe("creator page", () => {
         createdAt: "desc"
       }
     });
+    expect(html).toContain("累计下载");
+    expect(html).toContain("12");
+    expect(html).toContain("待处理咨询");
+    expect(html).toContain("3");
+    expect(html).toContain("待结算金额（分）");
+    expect(html).toContain("50000");
     expect(html).toContain("Research Assistant");
     expect(html).toContain("已发布");
     expect(html).toContain("/agents/research-assistant-1-0-0");

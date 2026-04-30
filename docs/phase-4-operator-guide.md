@@ -35,6 +35,17 @@
    - completed orders
 4. Use `联系该创作者` to jump into the package consultation form.
 
+## Creator Dashboard
+
+1. Open `/creator`.
+2. Review:
+   - uploaded package count
+   - total downloads
+   - open consultations
+   - active orders
+   - unsettled revenue
+3. Use `咨询列表`, `订单列表`, and `上传智能体` to move into the next workflow.
+
 ## Admin Overview
 
 1. Open `/admin`.
