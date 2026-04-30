@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { UserRole, WhitelistStatus } from "@prisma/client";
+import { WhitelistStatus } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
 
@@ -74,7 +74,7 @@ export async function requireCreator() {
 
 export async function requireAdmin() {
   const user = await getCurrentUser();
-  if (!user || user.role !== UserRole.ADMIN) {
+  if (!user || !isAdminEmail(user.email)) {
     throw new Error("Admin access is required");
   }
 

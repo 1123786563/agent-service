@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { consumeMagicLink } from "@/server/auth/magic-link";
+import { consumeMagicLink, isAuthFlowError } from "@/server/auth/magic-link";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -9,6 +9,15 @@ export async function GET(request: Request) {
     redirect("/login?error=missing-token");
   }
 
-  await consumeMagicLink(token);
+  try {
+    await consumeMagicLink(token);
+  } catch (error) {
+    if (isAuthFlowError(error)) {
+      redirect(`/login?error=${error.code}`);
+    }
+
+    throw error;
+  }
+
   redirect("/creator");
 }
