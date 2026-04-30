@@ -237,6 +237,15 @@ export async function listServiceOrdersForProvider(providerId: string, deps: Ord
   return deps.store.findManyForProvider(normalizedProviderId);
 }
 
+export async function getServiceOrderById(orderId: string, deps: OrderServiceDeps = defaultDeps) {
+  const normalizedOrderId = orderId.trim();
+  if (!normalizedOrderId) {
+    throw new Error("Order ID is required");
+  }
+
+  return deps.store.findUniqueById(normalizedOrderId);
+}
+
 export async function markServiceOrderPaid(
   input: MarkServiceOrderPaidInput,
   deps: OrderServiceDeps = defaultDeps
