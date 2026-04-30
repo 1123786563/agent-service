@@ -32,6 +32,11 @@ export default async function AdminPage() {
         include: {
           agentPackage: true
         }
+      },
+      deliveries: {
+        orderBy: {
+          submittedAt: "desc"
+        }
       }
     },
     orderBy: { createdAt: "desc" },
@@ -97,6 +102,17 @@ export default async function AdminPage() {
             <p className="muted">
               订单状态：{order.status} · 支付状态：{order.paymentStatus}
             </p>
+            {order.deliveries[0] ? (
+              <p className="muted">
+                最近交付：{order.deliveries[0].fileName} · 提交：
+                {order.deliveries[0].submittedAt.toLocaleString("zh-CN")} · 验收：
+                {order.deliveries[0].acceptedAt
+                  ? order.deliveries[0].acceptedAt.toLocaleString("zh-CN")
+                  : "待验收"}
+              </p>
+            ) : (
+              <p className="muted">最近交付：暂无</p>
+            )}
           </article>
         ))}
       </div>

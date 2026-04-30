@@ -81,11 +81,18 @@ describe("admin pages", () => {
         id: "order-1",
         title: "Deployment package",
         buyerEmail: "buyer@example.com",
-        status: "PENDING_PAYMENT",
-        paymentStatus: "UNPAID",
+        status: "DELIVERED",
+        paymentStatus: "PAID",
         provider: {
           email: "creator@example.com"
         },
+        deliveries: [
+          {
+            fileName: "handoff.txt",
+            submittedAt: new Date("2026-04-30T08:00:00.000Z"),
+            acceptedAt: null
+          }
+        ],
         consultation: {
           agentPackage: {
             name: "Research Assistant"
@@ -111,7 +118,9 @@ describe("admin pages", () => {
     expect(adminHtml).toContain("最近咨询");
     expect(adminHtml).toContain("buyer@example.com");
     expect(adminHtml).toContain("最近订单");
-    expect(adminHtml).toContain("PENDING_PAYMENT");
+    expect(adminHtml).toContain("DELIVERED");
+    expect(adminHtml).toContain("handoff.txt");
+    expect(adminHtml).toContain("待验收");
     expect(whitelistHtml).toContain("白名单管理");
     expect(whitelistHtml).toContain("creator@example.com");
   });
