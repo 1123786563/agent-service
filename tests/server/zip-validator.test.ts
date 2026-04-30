@@ -36,6 +36,9 @@ const validMetadata = {
   service: { available: false, types: [] }
 } satisfies AgentMetadata;
 
+const END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;
+const CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE = 0x02014b50;
+
 function agentMetadata(overrides: Partial<AgentMetadata> = {}): AgentMetadata {
   return { ...validMetadata, ...overrides };
 }
@@ -51,24 +54,77 @@ async function generateBuffer(zip: JSZip) {
   return Buffer.from(await zip.generateAsync({ type: "nodebuffer" }));
 }
 
-function setCentralDirectoryUncompressedSize(buffer: Buffer, fileName: string, size: number) {
-  const centralDirectorySignature = 0x02014b50;
+function findEndOfCentralDirectory(buffer: Buffer) {
+  const minimumOffset = Math.max(0, buffer.byteLength - 22 - 0xffff);
 
-  for (let offset = 0; offset <= buffer.byteLength - 46; offset += 1) {
-    if (buffer.readUInt32LE(offset) !== centralDirectorySignature) {
-      continue;
-    }
-
-    const fileNameLength = buffer.readUInt16LE(offset + 28);
-    const entryName = buffer.subarray(offset + 46, offset + 46 + fileNameLength).toString("utf8");
-
-    if (entryName === fileName) {
-      buffer.writeUInt32LE(size, offset + 24);
-      return buffer;
+  for (let offset = buffer.byteLength - 22; offset >= minimumOffset; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === END_OF_CENTRAL_DIRECTORY_SIGNATURE) {
+      return offset;
     }
   }
 
+  throw new Error("End of central directory not found");
+}
+
+function getCentralDirectoryBounds(buffer: Buffer) {
+  const directoryEndOffset = findEndOfCentralDirectory(buffer);
+  const centralDirectorySize = buffer.readUInt32LE(directoryEndOffset + 12);
+  const centralDirectoryOffset = buffer.readUInt32LE(directoryEndOffset + 16);
+  const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
+  const entryCount = buffer.readUInt16LE(directoryEndOffset + 10);
+
+  if (centralDirectoryEnd > buffer.byteLength) {
+    throw new Error("Invalid central directory bounds");
+  }
+
+  return { centralDirectoryEnd, centralDirectoryOffset, directoryEndOffset, entryCount };
+}
+
+function findCentralDirectoryEntry(buffer: Buffer, fileName: string) {
+  const { centralDirectoryEnd, centralDirectoryOffset } = getCentralDirectoryBounds(buffer);
+  let offset = centralDirectoryOffset;
+
+  while (offset < centralDirectoryEnd) {
+    if (offset + 46 > centralDirectoryEnd) {
+      throw new Error("Truncated central directory entry");
+    }
+
+    if (buffer.readUInt32LE(offset) !== CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE) {
+      throw new Error("Invalid central directory entry signature");
+    }
+
+    const fileNameLength = buffer.readUInt16LE(offset + 28);
+    const extraFieldLength = buffer.readUInt16LE(offset + 30);
+    const fileCommentLength = buffer.readUInt16LE(offset + 32);
+    const fileNameOffset = offset + 46;
+    const nextOffset = fileNameOffset + fileNameLength + extraFieldLength + fileCommentLength;
+
+    if (nextOffset > centralDirectoryEnd) {
+      throw new Error("Invalid central directory entry bounds");
+    }
+
+    const entryName = buffer.subarray(fileNameOffset, fileNameOffset + fileNameLength).toString("utf8");
+    if (entryName === fileName) {
+      return offset;
+    }
+
+    offset = nextOffset;
+  }
+
   throw new Error(`Central directory entry not found: ${fileName}`);
+}
+
+function setCentralDirectoryUncompressedSize(buffer: Buffer, fileName: string, size: number) {
+  const offset = findCentralDirectoryEntry(buffer, fileName);
+  buffer.writeUInt32LE(size, offset + 24);
+  return buffer;
+}
+
+function setEndOfCentralDirectoryEntryCount(buffer: Buffer, entryCount: number) {
+  const { directoryEndOffset } = getCentralDirectoryBounds(buffer);
+  buffer.writeUInt16LE(entryCount, directoryEndOffset + 8);
+  buffer.writeUInt16LE(entryCount, directoryEndOffset + 10);
+  return buffer;
 }
 
 describe("validateAgentZip", () => {
@@ -118,6 +174,8 @@ describe("validateAgentZip", () => {
     expect(result.ok).toBe(false);
     expect(result.errors).toContain("Unsafe path in ZIP: ../agent.json");
     expect(result.errors).toContain("Duplicate path in ZIP after normalization: agent.json");
+    expect(result.errors).toContain("ZIP must contain exactly one agent.json file");
+    expect(result.metadata).toBeUndefined();
   });
 
   it("rejects excessive total ZIP entries", async () => {
@@ -207,6 +265,21 @@ describe("validateAgentZip", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors).toContain(`agent.json exceeds ${MAX_AGENT_JSON_BYTES} bytes`);
+  });
+
+  it("rejects central directories with EOCD entry counts below actual entries", async () => {
+    const zip = new JSZip();
+    addValidPackage(zip);
+    zip.file("extra.txt", "x", { createFolders: false });
+
+    const buffer = await generateBuffer(zip);
+    const { entryCount } = getCentralDirectoryBounds(buffer);
+    expect(entryCount).toBeGreaterThan(1);
+
+    const result = await validateAgentZip(setEndOfCentralDirectoryEntryCount(buffer, entryCount - 1));
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain("Uploaded file is not a readable ZIP archive");
   });
 
   it("rejects excessive total uncompressed size metadata", async () => {

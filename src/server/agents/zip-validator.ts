@@ -97,25 +97,15 @@ export async function validateAgentZip(buffer: Buffer): Promise<ZipValidationRes
     }
   }
 
-  const agentJsonFile = zip.file("agent.json");
-  if (!agentJsonFile) {
-    return {
-      ok: false,
-      errors: unique(errors),
-      risks: unique(risks),
-      fileNames
-    };
-  }
-
   let metadata: AgentMetadata | undefined;
   const agentJsonEntries = rawEntries.filter((entry) => !entry.dir && entry.normalizedName === "agent.json");
-  const canReadMetadata =
-    agentJsonEntries.length === 0 ||
-    agentJsonEntries.every((entry) => entry.uncompressedSize <= MAX_AGENT_JSON_BYTES);
+  const agentJsonFile = zip.file("agent.json");
 
-  if (!canReadMetadata) {
+  if (agentJsonEntries.length !== 1) {
+    errors.push("ZIP must contain exactly one agent.json file");
+  } else if (agentJsonEntries[0].uncompressedSize > MAX_AGENT_JSON_BYTES) {
     errors.push(`agent.json exceeds ${MAX_AGENT_JSON_BYTES} bytes`);
-  } else {
+  } else if (agentJsonFile) {
     try {
       const rawMetadata = await agentJsonFile.async("nodebuffer");
 
@@ -230,7 +220,9 @@ function readCentralDirectoryEntries(buffer: Buffer): CentralDirectoryEntry[] {
     throw new Error("ZIP64 archives are not supported");
   }
 
-  if (centralDirectoryOffset + centralDirectorySize > buffer.byteLength) {
+  const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
+
+  if (centralDirectoryEnd > buffer.byteLength) {
     throw new Error("Invalid central directory bounds");
   }
 
@@ -238,7 +230,7 @@ function readCentralDirectoryEntries(buffer: Buffer): CentralDirectoryEntry[] {
   let offset = centralDirectoryOffset;
 
   for (let index = 0; index < entryCount; index += 1) {
-    if (offset + 46 > buffer.byteLength) {
+    if (offset + 46 > centralDirectoryEnd) {
       throw new Error("Truncated central directory entry");
     }
 
@@ -257,7 +249,7 @@ function readCentralDirectoryEntries(buffer: Buffer): CentralDirectoryEntry[] {
       throw new Error("ZIP64 archives are not supported");
     }
 
-    if (nextOffset > buffer.byteLength) {
+    if (nextOffset > centralDirectoryEnd) {
       throw new Error("Invalid central directory entry bounds");
     }
 
@@ -272,8 +264,8 @@ function readCentralDirectoryEntries(buffer: Buffer): CentralDirectoryEntry[] {
     offset = nextOffset;
   }
 
-  if (offset > centralDirectoryOffset + centralDirectorySize) {
-    throw new Error("Central directory entry overflow");
+  if (offset !== centralDirectoryEnd) {
+    throw new Error("Central directory entry count/size mismatch");
   }
 
   return entries;
