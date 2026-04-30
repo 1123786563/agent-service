@@ -15,13 +15,17 @@ vi.mock("@/server/auth/session", () => ({
 vi.mock("@/server/db", () => ({
   prisma: {
     agentPackage: {
-      findMany: vi.fn()
+      findMany: vi.fn(),
+      count: vi.fn(),
+      aggregate: vi.fn()
     },
     consultation: {
-      findMany: vi.fn()
+      findMany: vi.fn(),
+      count: vi.fn()
     },
     serviceOrder: {
-      findMany: vi.fn()
+      findMany: vi.fn(),
+      count: vi.fn()
     },
     user: {
       findMany: vi.fn()
@@ -54,6 +58,7 @@ describe("admin pages", () => {
         id: "pkg-1",
         name: "Research Assistant",
         status: "PUBLISHED",
+        downloadCount: 21,
         validationResult: {
           risks: ["network.permission"]
         },
@@ -62,6 +67,12 @@ describe("admin pages", () => {
         }
       }
     ] as never);
+    vi.mocked(prisma.agentPackage.count).mockResolvedValue(1 as never);
+    vi.mocked(prisma.agentPackage.aggregate).mockResolvedValue({
+      _sum: {
+        downloadCount: 21
+      }
+    } as never);
     vi.mocked(prisma.consultation.findMany).mockResolvedValue([
       {
         id: "consultation-1",
@@ -76,6 +87,7 @@ describe("admin pages", () => {
         }
       }
     ] as never);
+    vi.mocked(prisma.consultation.count).mockResolvedValue(1 as never);
     vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
       {
         id: "order-1",
@@ -100,6 +112,9 @@ describe("admin pages", () => {
         }
       }
     ] as never);
+    vi.mocked(prisma.serviceOrder.count)
+      .mockResolvedValueOnce(1 as never)
+      .mockResolvedValueOnce(0 as never);
     vi.mocked(prisma.user.findMany).mockResolvedValue([
       {
         id: "user-1",
@@ -113,6 +128,9 @@ describe("admin pages", () => {
     const whitelistHtml = renderToStaticMarkup(await WhitelistPage());
 
     expect(adminHtml).toContain("管理后台");
+    expect(adminHtml).toContain("Published");
+    expect(adminHtml).toContain("Downloads");
+    expect(adminHtml).toContain("21");
     expect(adminHtml).toContain("Research Assistant");
     expect(adminHtml).toContain("network.permission");
     expect(adminHtml).toContain("最近咨询");

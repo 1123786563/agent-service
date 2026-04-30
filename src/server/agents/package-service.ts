@@ -22,8 +22,9 @@ type PackageServiceDeps = {
   packageStore: {
     createPackage(args: CreatePackageArgs): Promise<AgentPackageWithRelations>;
     findSlugsWithPrefix(prefix: string): Promise<string[]>;
-    listPublishedPackages(): Promise<AgentPackageWithRelations[]>;
+    listPublishedPackages(options: ListPublishedPackagesOptions): Promise<AgentPackageWithRelations[]>;
     findPublishedPackageBySlug(slug: string): Promise<AgentPackageWithRelations | null>;
+    incrementDownloadCount(slug: string): Promise<void>;
   };
   validateZip(buffer: Buffer): Promise<ZipValidationResult>;
   storage: {
@@ -53,6 +54,19 @@ export type CreateAgentPackageInput = {
   fileName: string;
 };
 
+export type PublishedPackageSort = "newest" | "downloads" | "name";
+
+export type ListPublishedPackagesOptions = {
+  query?: string;
+  category?: string;
+  sort?: PublishedPackageSort;
+};
+
+export type MarketplaceSummary = {
+  publishedPackages: number;
+  totalDownloads: number;
+};
+
 const defaultDeps: PackageServiceDeps = {
   packageStore: {
     createPackage(args) {
@@ -72,15 +86,55 @@ const defaultDeps: PackageServiceDeps = {
 
       return packages.map((item) => item.slug);
     },
-    listPublishedPackages() {
+    listPublishedPackages(options) {
+      const orderBy =
+        options.sort === "downloads"
+          ? [{ downloadCount: "desc" as const }, { publishedAt: "desc" as const }, { createdAt: "desc" as const }]
+          : options.sort === "name"
+            ? [{ name: "asc" as const }]
+            : [{ publishedAt: "desc" as const }, { createdAt: "desc" as const }];
+
       return prisma.agentPackage.findMany({
         where: {
-          status: AgentPackageStatus.PUBLISHED
+          status: AgentPackageStatus.PUBLISHED,
+          ...(options.category
+            ? {
+                categories: {
+                  has: options.category
+                }
+              }
+            : {}),
+          ...(options.query
+            ? {
+                OR: [
+                  {
+                    name: {
+                      contains: options.query,
+                      mode: "insensitive"
+                    }
+                  },
+                  {
+                    summary: {
+                      contains: options.query,
+                      mode: "insensitive"
+                    }
+                  },
+                  {
+                    slug: {
+                      contains: options.query,
+                      mode: "insensitive"
+                    }
+                  },
+                  {
+                    categories: {
+                      has: options.query.toLowerCase()
+                    }
+                  }
+                ]
+              }
+            : {})
         },
-        orderBy: [
-          { publishedAt: "desc" },
-          { createdAt: "desc" }
-        ],
+        orderBy,
         include: {
           owner: true,
           skills: true,
@@ -104,6 +158,19 @@ const defaultDeps: PackageServiceDeps = {
         }
 
         return agentPackage;
+      });
+    },
+    async incrementDownloadCount(slug) {
+      await prisma.agentPackage.updateMany({
+        where: {
+          slug,
+          status: AgentPackageStatus.PUBLISHED
+        },
+        data: {
+          downloadCount: {
+            increment: 1
+          }
+        }
       });
     }
   },
@@ -198,6 +265,7 @@ export async function createAgentPackageFromZip(
             zipFileUrl: storage.url,
             zipFileName: storage.fileName,
             zipSizeBytes: storage.sizeBytes,
+            downloadCount: 0,
             validationResult: {
               errors: validation.errors,
               risks: validation.risks,
@@ -255,8 +323,23 @@ export async function createAgentPackageFromZip(
   }
 }
 
-export async function listPublishedAgentPackages(deps: PackageServiceDeps = defaultDeps) {
-  return deps.packageStore.listPublishedPackages();
+function normalizeListOptions(options: ListPublishedPackagesOptions = {}): Required<ListPublishedPackagesOptions> {
+  const query = (options.query ?? "").trim();
+  const category = (options.category ?? "").trim().toLowerCase();
+  const sort = options.sort === "downloads" || options.sort === "name" ? options.sort : "newest";
+
+  return {
+    query,
+    category,
+    sort
+  };
+}
+
+export async function listPublishedAgentPackages(
+  options: ListPublishedPackagesOptions = {},
+  deps: PackageServiceDeps = defaultDeps
+) {
+  return deps.packageStore.listPublishedPackages(normalizeListOptions(options));
 }
 
 export async function getPublishedAgentPackageBySlug(slug: string, deps: PackageServiceDeps = defaultDeps) {
@@ -265,4 +348,13 @@ export async function getPublishedAgentPackageBySlug(slug: string, deps: Package
 
 export async function readAgentPackageZip(fileName: string, deps: PackageServiceDeps = defaultDeps) {
   return deps.storage.readStoredZip(fileName);
+}
+
+export async function incrementPublishedAgentPackageDownloadCount(slug: string, deps: PackageServiceDeps = defaultDeps) {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) {
+    throw new Error("Package slug is required");
+  }
+
+  await deps.packageStore.incrementDownloadCount(normalizedSlug);
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(() => {
@@ -7,7 +7,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/server/agents/package-service", () => ({
-  getPublishedAgentPackageBySlug: vi.fn()
+  getPublishedAgentPackageBySlug: vi.fn(),
+  incrementPublishedAgentPackageDownloadCount: vi.fn()
 }));
 
 vi.mock("@/server/storage/local-storage", () => ({
@@ -15,8 +16,15 @@ vi.mock("@/server/storage/local-storage", () => ({
 }));
 
 import { GET } from "@/app/api/agents/[slug]/download/route";
-import { getPublishedAgentPackageBySlug } from "@/server/agents/package-service";
+import {
+  getPublishedAgentPackageBySlug,
+  incrementPublishedAgentPackageDownloadCount
+} from "@/server/agents/package-service";
 import { readStoredZip } from "@/server/storage/local-storage";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("agent download route", () => {
   it("returns the stored zip for a published package", async () => {
@@ -30,6 +38,7 @@ describe("agent download route", () => {
       params: Promise.resolve({ slug: "research-assistant-1-0-0" })
     });
 
+    expect(incrementPublishedAgentPackageDownloadCount).toHaveBeenCalledWith("research-assistant-1-0-0");
     expect(readStoredZip).toHaveBeenCalledWith("stored-file.zip");
     expect(response.headers.get("content-type")).toBe("application/zip");
     expect(response.headers.get("content-disposition")).toBe('attachment; filename="research-assistant-1-0-0.zip"');
@@ -42,5 +51,7 @@ describe("agent download route", () => {
     await expect(GET(new Request("http://localhost/api/agents/missing/download"), {
       params: Promise.resolve({ slug: "missing" })
     })).rejects.toThrow("NOT_FOUND");
+
+    expect(incrementPublishedAgentPackageDownloadCount).not.toHaveBeenCalled();
   });
 });

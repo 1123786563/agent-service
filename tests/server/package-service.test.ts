@@ -4,6 +4,7 @@ import { createAgentZip } from "@/test/fixtures";
 import {
   createAgentPackageFromZip,
   getPublishedAgentPackageBySlug,
+  incrementPublishedAgentPackageDownloadCount,
   listPublishedAgentPackages,
   resolveUniquePackageSlug,
   slugifyPackageName
@@ -41,7 +42,8 @@ describe("createAgentPackageFromZip", () => {
           createPackage,
           findSlugsWithPrefix: vi.fn(),
           listPublishedPackages: vi.fn(),
-          findPublishedPackageBySlug: vi.fn()
+          findPublishedPackageBySlug: vi.fn(),
+          incrementDownloadCount: vi.fn()
         }
       }
     );
@@ -74,6 +76,7 @@ describe("createAgentPackageFromZip", () => {
       zipFileName: "research-assistant-a1b2c3d4.zip",
       zipSizeBytes: zipBuffer.byteLength,
       coverUrl: null,
+      downloadCount: 0,
       status: AgentPackageStatus.PUBLISHED,
       validationResult: {
         errors: [],
@@ -104,7 +107,8 @@ describe("createAgentPackageFromZip", () => {
         createPackage,
         findSlugsWithPrefix,
         listPublishedPackages: vi.fn(),
-        findPublishedPackageBySlug: vi.fn()
+        findPublishedPackageBySlug: vi.fn(),
+        incrementDownloadCount: vi.fn()
       }
     });
 
@@ -127,6 +131,7 @@ describe("createAgentPackageFromZip", () => {
         zipFileUrl: "/api/uploads/research-assistant-a1b2c3d4.zip",
         zipFileName: "research-assistant-a1b2c3d4.zip",
         zipSizeBytes: zipBuffer.byteLength,
+        downloadCount: 0,
         validationResult: {
           errors: [],
           risks: validation.risks,
@@ -176,7 +181,8 @@ describe("createAgentPackageFromZip", () => {
           createPackage,
           findSlugsWithPrefix: vi.fn().mockResolvedValue([]),
           listPublishedPackages: vi.fn(),
-          findPublishedPackageBySlug: vi.fn()
+          findPublishedPackageBySlug: vi.fn(),
+          incrementDownloadCount: vi.fn()
         }
       })
     ).rejects.toThrow("database offline");
@@ -211,7 +217,8 @@ describe("createAgentPackageFromZip", () => {
         createPackage,
         findSlugsWithPrefix: vi.fn().mockResolvedValue(["research-assistant", "research-assistant-2"]),
         listPublishedPackages: vi.fn(),
-        findPublishedPackageBySlug: vi.fn()
+        findPublishedPackageBySlug: vi.fn(),
+        incrementDownloadCount: vi.fn()
       }
     });
 
@@ -226,6 +233,7 @@ describe("published package queries", () => {
   it("lists and fetches published packages only", async () => {
     const listPublishedPackages = vi.fn().mockResolvedValue([{ slug: "published-agent" }]);
     const findPublishedPackageBySlug = vi.fn().mockResolvedValue({ slug: "published-agent" });
+    const incrementDownloadCount = vi.fn().mockResolvedValue(undefined);
     const deps = {
       validateZip: vi.fn(),
       storage: {
@@ -237,14 +245,23 @@ describe("published package queries", () => {
         createPackage: vi.fn(),
         findSlugsWithPrefix: vi.fn(),
         listPublishedPackages,
-        findPublishedPackageBySlug
+        findPublishedPackageBySlug,
+        incrementDownloadCount
       }
     };
 
-    await expect(listPublishedAgentPackages(deps)).resolves.toEqual([{ slug: "published-agent" }]);
+    await expect(listPublishedAgentPackages({ query: "published", sort: "downloads" }, deps)).resolves.toEqual([
+      { slug: "published-agent" }
+    ]);
     await expect(getPublishedAgentPackageBySlug("published-agent", deps)).resolves.toEqual({ slug: "published-agent" });
+    await expect(incrementPublishedAgentPackageDownloadCount("published-agent", deps)).resolves.toBeUndefined();
 
-    expect(listPublishedPackages).toHaveBeenCalledOnce();
+    expect(listPublishedPackages).toHaveBeenCalledWith({
+      query: "published",
+      category: "",
+      sort: "downloads"
+    });
     expect(findPublishedPackageBySlug).toHaveBeenCalledWith("published-agent");
+    expect(incrementDownloadCount).toHaveBeenCalledWith("published-agent");
   });
 });

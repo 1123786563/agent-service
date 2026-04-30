@@ -12,7 +12,9 @@ export function AgentCard({ agentPackage }: AgentCardProps) {
       <p className="eyebrow">{agentPackage.categories.join(" / ")}</p>
       <h2>{agentPackage.name}</h2>
       <p>{agentPackage.summary}</p>
-      <p className="muted">{agentPackage.skills.length} skills · v{agentPackage.version}</p>
+      <p className="muted">
+        {agentPackage.skills.length} skills · v{agentPackage.version} · {agentPackage.downloadCount} downloads
+      </p>
       <Link className="button secondary" href={`/agents/${agentPackage.slug}`}>查看详情</Link>
     </article>
   );

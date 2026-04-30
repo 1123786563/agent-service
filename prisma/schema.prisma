@@ -107,6 +107,7 @@ model AgentPackage {
   zipFileName      String
   zipSizeBytes     Int
   coverUrl         String?
+  downloadCount    Int                @default(0)
   status           AgentPackageStatus @default(DRAFT)
   validationResult Json
   publishedAt      DateTime?

@@ -129,6 +129,24 @@ h1 {
   font: inherit;
 }
 
+.form select,
+.filters select {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  background: var(--panel);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+
 .textarea {
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -225,6 +243,10 @@ code {
   }
 
   .inline-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
     grid-template-columns: 1fr;
   }
 }

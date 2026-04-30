@@ -4,13 +4,70 @@ import { listPublishedAgentPackages } from "@/server/agents/package-service";
 
 export const dynamic = "force-dynamic";
 
-export default async function AgentsPage() {
-  const packages = await listPublishedAgentPackages();
+type AgentsSearchParams = {
+  q?: string | string[];
+  category?: string | string[];
+  sort?: string | string[];
+};
+
+function getFirstParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function AgentsPage({ searchParams }: { searchParams?: Promise<AgentsSearchParams> }) {
+  const resolvedSearchParams = await searchParams;
+  const query = getFirstParam(resolvedSearchParams?.q) ?? "";
+  const category = getFirstParam(resolvedSearchParams?.category) ?? "";
+  const sort = getFirstParam(resolvedSearchParams?.sort) ?? "newest";
+  const packages = await listPublishedAgentPackages({
+    query,
+    category,
+    sort: sort === "downloads" || sort === "name" ? sort : "newest"
+  });
+  const availableCategories = [...new Set(packages.flatMap((agentPackage) => agentPackage.categories))].sort();
 
   return (
     <section>
-      <h1>智能体市场</h1>
-      <p className="lede">浏览已通过结构校验的 Hermes-agent ZIP 包。</p>
+      <div className="section-header">
+        <div>
+          <h1>智能体市场</h1>
+          <p className="lede">浏览已通过结构校验的 Hermes-agent ZIP 包。</p>
+        </div>
+        <p className="muted">{packages.length} results</p>
+      </div>
+
+      <form className="panel filters" method="get">
+        <label>
+          搜索
+          <input defaultValue={query} name="q" placeholder="名称、摘要、slug、分类" type="search" />
+        </label>
+        <label>
+          分类
+          <select defaultValue={category} name="category">
+            <option value="">全部</option>
+            {availableCategories.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          排序
+          <select defaultValue={sort} name="sort">
+            <option value="newest">最新发布</option>
+            <option value="downloads">下载量</option>
+            <option value="name">名称</option>
+          </select>
+        </label>
+        <button className="button" type="submit">筛选</button>
+      </form>
+
+      {packages.length === 0 ? (
+        <section className="panel">
+          <h2>没有匹配结果</h2>
+          <p className="muted">调整关键词、分类或排序后再试。</p>
+        </section>
+      ) : null}
+
       <div className="grid">
         {packages.map((agentPackage) => (
           <AgentCard key={agentPackage.id} agentPackage={agentPackage} />

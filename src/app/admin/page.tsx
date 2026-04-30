@@ -17,6 +17,25 @@ export default async function AdminPage() {
     include: { owner: true },
     orderBy: { createdAt: "desc" }
   });
+  const [publishedPackages, packageAggregates, consultationCount, orderCount, completedOrderCount] = await Promise.all([
+    prisma.agentPackage.count({
+      where: {
+        status: "PUBLISHED"
+      }
+    }),
+    prisma.agentPackage.aggregate({
+      _sum: {
+        downloadCount: true
+      }
+    }),
+    prisma.consultation.count(),
+    prisma.serviceOrder.count(),
+    prisma.serviceOrder.count({
+      where: {
+        status: "COMPLETED"
+      }
+    })
+  ]);
   const consultations = await prisma.consultation.findMany({
     include: {
       agentPackage: true,
@@ -51,6 +70,33 @@ export default async function AdminPage() {
           <p className="lede">管理白名单、查看 ZIP 风险结果、下架异常智能体。</p>
         </div>
         <Link className="button secondary" href="/admin/whitelist">白名单</Link>
+      </div>
+      <div className="grid">
+        <article className="panel">
+          <p className="eyebrow">Published</p>
+          <h2>{publishedPackages}</h2>
+          <p className="muted">已发布智能体</p>
+        </article>
+        <article className="panel">
+          <p className="eyebrow">Downloads</p>
+          <h2>{packageAggregates._sum.downloadCount ?? 0}</h2>
+          <p className="muted">累计下载</p>
+        </article>
+        <article className="panel">
+          <p className="eyebrow">Consultations</p>
+          <h2>{consultationCount}</h2>
+          <p className="muted">累计咨询</p>
+        </article>
+        <article className="panel">
+          <p className="eyebrow">Orders</p>
+          <h2>{orderCount}</h2>
+          <p className="muted">累计订单</p>
+        </article>
+        <article className="panel">
+          <p className="eyebrow">Completed</p>
+          <h2>{completedOrderCount}</h2>
+          <p className="muted">已完成订单</p>
+        </article>
       </div>
       <div className="list">
         {packages.map((agentPackage) => (

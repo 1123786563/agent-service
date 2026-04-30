@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
-import { getPublishedAgentPackageBySlug } from "@/server/agents/package-service";
+import {
+  getPublishedAgentPackageBySlug,
+  incrementPublishedAgentPackageDownloadCount
+} from "@/server/agents/package-service";
 import { readStoredZip } from "@/server/storage/local-storage";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -10,6 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     notFound();
   }
 
+  await incrementPublishedAgentPackageDownloadCount(slug);
   const buffer = await readStoredZip(agentPackage.zipFileName);
 
   return new Response(buffer, {
