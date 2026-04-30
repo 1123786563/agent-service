@@ -91,5 +91,7 @@ describe("creator orders page", () => {
     expect(html).toContain("上传交付物");
     expect(html).toContain("/api/orders/order-1/deliveries");
     expect(html).toContain("handoff.txt");
+    expect(html).toContain("/api/orders/order-1/dispute");
+    expect(html).toContain("发起争议");
   });
 });

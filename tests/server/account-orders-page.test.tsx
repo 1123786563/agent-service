@@ -102,6 +102,8 @@ describe("account orders page", () => {
     expect(html).toContain("/api/orders/order-1/deliveries/delivery-1/download");
     expect(html).toContain("/api/orders/order-1/complete");
     expect(html).toContain("确认完成");
+    expect(html).toContain("/api/orders/order-1/dispute");
+    expect(html).toContain("发起争议");
   });
 
   it("lets buyers retry failed payments", async () => {

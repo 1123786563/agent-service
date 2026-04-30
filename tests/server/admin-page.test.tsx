@@ -148,6 +148,23 @@ describe("admin pages", () => {
             name: "Ops Copilot"
           }
         }
+      },
+      {
+        id: "order-3",
+        title: "Disputed package",
+        buyerEmail: "dispute@example.com",
+        status: "DISPUTED",
+        paymentStatus: "PAID",
+        paymentReference: "devpay_dispute",
+        provider: {
+          email: "creator@example.com"
+        },
+        deliveries: [],
+        consultation: {
+          agentPackage: {
+            name: "Research Assistant"
+          }
+        }
       }
     ] as never);
     vi.mocked(prisma.serviceOrder.count)
@@ -211,6 +228,11 @@ describe("admin pages", () => {
     expect(adminHtml).toContain("支付异常订单");
     expect(adminHtml).toContain("devpay_failed");
     expect(adminHtml).toContain("重置为待支付");
+    expect(adminHtml).toContain("争议订单");
+    expect(adminHtml).toContain("Disputed package");
+    expect(adminHtml).toContain("恢复进行中");
+    expect(adminHtml).toContain("恢复待验收");
+    expect(adminHtml).toContain("取消订单");
     expect(whitelistHtml).toContain("白名单管理");
     expect(whitelistHtml).toContain("creator@example.com");
   });

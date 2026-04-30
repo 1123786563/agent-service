@@ -5,7 +5,9 @@ import {
   listServiceOrdersForBuyerEmail,
   listServiceOrdersForProvider,
   markServiceOrderPaid,
-  markServiceOrderPaymentFailed
+  markServiceOrderPaymentFailed,
+  markServiceOrderDisputed,
+  resolveDisputedServiceOrder
 } from "@/server/orders/service";
 
 describe("order service", () => {
@@ -220,5 +222,66 @@ describe("order service", () => {
       }
     });
     expect(order.paymentStatus).toBe(PaymentStatus.FAILED);
+  });
+
+  it("marks an in-progress order as disputed", async () => {
+    const store = {
+      findConsultationById: vi.fn(),
+      consultationHasOrder: vi.fn(),
+      createOrderForConsultation: vi.fn(),
+      findManyForBuyerEmail: vi.fn(),
+      findManyForProvider: vi.fn(),
+      findUniqueById: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.IN_PROGRESS,
+        paymentStatus: PaymentStatus.PAID
+      }),
+      updateOrder: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.DISPUTED
+      })
+    };
+
+    const order = await markServiceOrderDisputed({ orderId: "order-1" }, { store });
+
+    expect(store.updateOrder).toHaveBeenCalledWith({
+      where: { id: "order-1" },
+      data: {
+        status: ServiceOrderStatus.DISPUTED
+      }
+    });
+    expect(order.status).toBe(ServiceOrderStatus.DISPUTED);
+  });
+
+  it("resolves a disputed order to a chosen status", async () => {
+    const store = {
+      findConsultationById: vi.fn(),
+      consultationHasOrder: vi.fn(),
+      createOrderForConsultation: vi.fn(),
+      findManyForBuyerEmail: vi.fn(),
+      findManyForProvider: vi.fn(),
+      findUniqueById: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.DISPUTED,
+        paymentStatus: PaymentStatus.PAID
+      }),
+      updateOrder: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.DELIVERED
+      })
+    };
+
+    const order = await resolveDisputedServiceOrder({
+      orderId: "order-1",
+      nextStatus: ServiceOrderStatus.DELIVERED
+    }, { store });
+
+    expect(store.updateOrder).toHaveBeenCalledWith({
+      where: { id: "order-1" },
+      data: {
+        status: ServiceOrderStatus.DELIVERED
+      }
+    });
+    expect(order.status).toBe(ServiceOrderStatus.DELIVERED);
   });
 });

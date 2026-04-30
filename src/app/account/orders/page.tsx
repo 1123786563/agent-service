@@ -2,6 +2,7 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
 import { CompleteOrderButton } from "@/components/complete-order-button";
+import { DisputeOrderButton } from "@/components/dispute-order-button";
 import { OrderStatusPill } from "@/components/order-status-pill";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -86,6 +87,9 @@ export default async function AccountOrdersPage() {
                   </a>
                   {order.status === ServiceOrderStatus.DELIVERED ? (
                     <CompleteOrderButton orderId={order.id} />
+                  ) : null}
+                  {order.status === ServiceOrderStatus.IN_PROGRESS || order.status === ServiceOrderStatus.DELIVERED ? (
+                    <DisputeOrderButton orderId={order.id} />
                   ) : null}
                 </div>
               </section>

@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { WhitelistStatus } from "@prisma/client";
+import { DisputeOrderButton } from "@/components/dispute-order-button";
 import { OrderStatusPill } from "@/components/order-status-pill";
 import { UploadDeliveryForm } from "@/components/upload-delivery-form";
 import { getCurrentUser } from "@/server/auth/session";
@@ -70,6 +71,11 @@ export default async function CreatorOrdersPage() {
             </p>
             {order.deliveries[0] ? (
               <p className="muted">最近交付：{order.deliveries[0].fileName}</p>
+            ) : null}
+            {order.status === "IN_PROGRESS" || order.status === "DELIVERED" ? (
+              <div className="actions">
+                <DisputeOrderButton orderId={order.id} />
+              </div>
             ) : null}
             {order.status === "IN_PROGRESS" ? (
               <section>

@@ -25,7 +25,7 @@ vi.mock("@/server/db", () => ({
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/auth/session";
 import { prisma } from "@/server/db";
-import { activateCreatorWhitelist, archiveAgentPackage, resetOrderPayment } from "@/app/admin/actions";
+import { activateCreatorWhitelist, archiveAgentPackage, resetOrderPayment, resolveDisputedOrder } from "@/app/admin/actions";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -88,6 +88,28 @@ describe("admin actions", () => {
         status: "PENDING_PAYMENT",
         paymentStatus: "UNPAID",
         paymentReference: null
+      }
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/analytics");
+    expect(revalidatePath).toHaveBeenCalledWith("/account/orders");
+    expect(revalidatePath).toHaveBeenCalledWith("/creator/orders");
+  });
+
+  it("resolves disputed orders to a selected status", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin-1" } as never);
+    vi.mocked(prisma.serviceOrder.update).mockResolvedValue({ id: "order-2" } as never);
+
+    const formData = new FormData();
+    formData.append("orderId", "order-2");
+    formData.append("nextStatus", "DELIVERED");
+
+    await resolveDisputedOrder(formData);
+
+    expect(prisma.serviceOrder.update).toHaveBeenCalledWith({
+      where: { id: "order-2" },
+      data: {
+        status: "DELIVERED"
       }
     });
     expect(revalidatePath).toHaveBeenCalledWith("/admin");

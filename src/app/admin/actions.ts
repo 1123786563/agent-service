@@ -68,3 +68,33 @@ export async function resetOrderPayment(formData: FormData) {
   revalidatePath("/account/orders");
   revalidatePath("/creator/orders");
 }
+
+export async function resolveDisputedOrder(formData: FormData) {
+  await requireAdmin();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const nextStatus = String(formData.get("nextStatus") ?? "").trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  if (
+    nextStatus !== ServiceOrderStatus.IN_PROGRESS &&
+    nextStatus !== ServiceOrderStatus.DELIVERED &&
+    nextStatus !== ServiceOrderStatus.CANCELLED
+  ) {
+    throw new Error("Valid dispute resolution status is required");
+  }
+
+  await prisma.serviceOrder.update({
+    where: { id: orderId },
+    data: {
+      status: nextStatus
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/account/orders");
+  revalidatePath("/creator/orders");
+}

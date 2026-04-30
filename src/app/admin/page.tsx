@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PaymentStatus, UserRole } from "@prisma/client";
-import { archiveAgentPackage, resetOrderPayment } from "./actions";
+import { archiveAgentPackage, resetOrderPayment, resolveDisputedOrder } from "./actions";
 import { getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -74,6 +74,7 @@ export default async function AdminPage() {
     take: 10
   });
   const failedPaymentOrders = orders.filter((order) => order.paymentStatus === PaymentStatus.FAILED);
+  const disputedOrders = orders.filter((order) => order.status === "DISPUTED");
   const creatorRows = await prisma.user.findMany({
     where: {
       role: UserRole.CREATOR
@@ -303,6 +304,47 @@ export default async function AdminPage() {
               <input name="orderId" type="hidden" value={order.id} />
               <button className="button secondary" type="submit">重置为待支付</button>
             </form>
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>争议订单</h2>
+          <p className="muted">人工恢复争议订单到进行中、待验收或取消。</p>
+        </div>
+      </div>
+      <div className="list">
+        {disputedOrders.length === 0 ? (
+          <article className="panel">
+            <p className="muted">暂无争议订单。</p>
+          </article>
+        ) : disputedOrders.map((order) => (
+          <article className="panel" key={order.id}>
+            <h3>{order.title}</h3>
+            <p className="muted">
+              买家：{order.buyerEmail} · 服务商：{order.provider.email}
+            </p>
+            <p className="muted">
+              订单状态：{order.status} · 支付状态：{order.paymentStatus}
+            </p>
+            <div className="actions">
+              <form action={resolveDisputedOrder}>
+                <input name="orderId" type="hidden" value={order.id} />
+                <input name="nextStatus" type="hidden" value="IN_PROGRESS" />
+                <button className="button secondary" type="submit">恢复进行中</button>
+              </form>
+              <form action={resolveDisputedOrder}>
+                <input name="orderId" type="hidden" value={order.id} />
+                <input name="nextStatus" type="hidden" value="DELIVERED" />
+                <button className="button secondary" type="submit">恢复待验收</button>
+              </form>
+              <form action={resolveDisputedOrder}>
+                <input name="orderId" type="hidden" value={order.id} />
+                <input name="nextStatus" type="hidden" value="CANCELLED" />
+                <button className="button secondary" type="submit">取消订单</button>
+              </form>
+            </div>
           </article>
         ))}
       </div>

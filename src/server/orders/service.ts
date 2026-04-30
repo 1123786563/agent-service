@@ -67,6 +67,15 @@ export type MarkServiceOrderPaymentFailedInput = {
   paymentReference?: string | null;
 };
 
+export type MarkServiceOrderDisputedInput = {
+  orderId: string;
+};
+
+export type ResolveDisputedServiceOrderInput = {
+  orderId: string;
+  nextStatus: "IN_PROGRESS" | "DELIVERED" | "CANCELLED";
+};
+
 const defaultDeps: OrderServiceDeps = {
   store: {
     findConsultationById(id) {
@@ -316,6 +325,67 @@ export async function markServiceOrderPaymentFailed(
       paymentStatus: PaymentStatus.FAILED,
       status: ServiceOrderStatus.PENDING_PAYMENT,
       paymentReference: input.paymentReference ?? order.paymentReference
+    }
+  });
+}
+
+export async function markServiceOrderDisputed(
+  input: MarkServiceOrderDisputedInput,
+  deps: OrderServiceDeps = defaultDeps
+) {
+  const orderId = input.orderId.trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  const order = await deps.store.findUniqueById(orderId);
+  if (!order) {
+    throw new Error("Service order not found");
+  }
+
+  const disputableStatuses: ServiceOrderStatus[] = [
+    ServiceOrderStatus.PAID,
+    ServiceOrderStatus.IN_PROGRESS,
+    ServiceOrderStatus.DELIVERED
+  ];
+  if (!disputableStatuses.includes(order.status)) {
+    throw new Error("Service order cannot enter dispute from its current status");
+  }
+
+  if (order.status === ServiceOrderStatus.DISPUTED) {
+    return order;
+  }
+
+  return deps.store.updateOrder({
+    where: { id: orderId },
+    data: {
+      status: ServiceOrderStatus.DISPUTED
+    }
+  });
+}
+
+export async function resolveDisputedServiceOrder(
+  input: ResolveDisputedServiceOrderInput,
+  deps: OrderServiceDeps = defaultDeps
+) {
+  const orderId = input.orderId.trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  const order = await deps.store.findUniqueById(orderId);
+  if (!order) {
+    throw new Error("Service order not found");
+  }
+
+  if (order.status !== ServiceOrderStatus.DISPUTED) {
+    throw new Error("Service order is not disputed");
+  }
+
+  return deps.store.updateOrder({
+    where: { id: orderId },
+    data: {
+      status: input.nextStatus
     }
   });
 }
