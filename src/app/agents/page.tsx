@@ -1,6 +1,7 @@
 import React from "react";
+import Link from "next/link";
 import { AgentCard } from "@/components/agent-card";
-import { listPublishedAgentPackages } from "@/server/agents/package-service";
+import { isAgentPackageServiceAvailable, listPublishedAgentPackages } from "@/server/agents/package-service";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,7 @@ type AgentsSearchParams = {
   q?: string | string[];
   category?: string | string[];
   sort?: string | string[];
+  service?: string | string[];
 };
 
 function getFirstParam(value?: string | string[]) {
@@ -19,11 +21,15 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
   const query = getFirstParam(resolvedSearchParams?.q) ?? "";
   const category = getFirstParam(resolvedSearchParams?.category) ?? "";
   const sort = getFirstParam(resolvedSearchParams?.sort) ?? "newest";
+  const serviceOnly = getFirstParam(resolvedSearchParams?.service) === "1";
   const packages = await listPublishedAgentPackages({
     query,
     category,
     sort: sort === "downloads" || sort === "name" ? sort : "newest"
   });
+  const visiblePackages = serviceOnly
+    ? packages.filter((agentPackage) => isAgentPackageServiceAvailable(agentPackage.metadataJson))
+    : packages;
   const availableCategories = [...new Set(packages.flatMap((agentPackage) => agentPackage.categories))].sort();
 
   return (
@@ -33,7 +39,7 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
           <h1>智能体市场</h1>
           <p className="lede">浏览已通过结构校验的 Hermes-agent ZIP 包。</p>
         </div>
-        <p className="muted">{packages.length} results</p>
+        <p className="muted">{visiblePackages.length} results</p>
       </div>
 
       <form className="panel filters" method="get">
@@ -58,10 +64,31 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
             <option value="name">名称</option>
           </select>
         </label>
+        <label>
+          <input defaultChecked={serviceOnly} name="service" type="checkbox" value="1" />
+          仅看可提供服务
+        </label>
         <button className="button" type="submit">筛选</button>
       </form>
 
-      {packages.length === 0 ? (
+      <div className="section-header" style={{ marginTop: 24 }}>
+        <div>
+          <h2>快速转化</h2>
+          <p className="muted">优先查看支持定制、部署或培训服务的智能体。</p>
+        </div>
+        {serviceOnly ? (
+          <Link className="button secondary" href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(sort)}`}>查看全部</Link>
+        ) : (
+          <Link
+            className="button secondary"
+            href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(sort)}&service=1`}
+          >
+            仅看可提供服务
+          </Link>
+        )}
+      </div>
+
+      {visiblePackages.length === 0 ? (
         <section className="panel">
           <h2>没有匹配结果</h2>
           <p className="muted">调整关键词、分类或排序后再试。</p>
@@ -69,7 +96,7 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
       ) : null}
 
       <div className="grid">
-        {packages.map((agentPackage) => (
+        {visiblePackages.map((agentPackage) => (
           <AgentCard key={agentPackage.id} agentPackage={agentPackage} />
         ))}
       </div>

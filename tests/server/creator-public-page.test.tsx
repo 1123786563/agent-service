@@ -52,6 +52,8 @@ describe("creator public page", () => {
     expect(html).toContain("2 completed orders");
     expect(html).toContain("Research Assistant");
     expect(html).toContain("/agents/research-assistant");
+    expect(html).toContain("/agents/research-assistant#consultation");
+    expect(html).toContain("联系该创作者");
   });
 
   it("renders not found for unknown creators", async () => {

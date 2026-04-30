@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AgentPackageStatus } from "@prisma/client";
 import { AgentCard } from "@/components/agent-card";
+import { isAgentPackageServiceAvailable } from "@/server/agents/package-service";
 import { prisma } from "@/server/db";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,8 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
   }
 
   const totalDownloads = creator.packages.reduce((sum, agentPackage) => sum + agentPackage.downloadCount, 0);
+  const servicePackages = creator.packages.filter((agentPackage) => isAgentPackageServiceAvailable(agentPackage.metadataJson));
+  const featuredServicePackage = servicePackages[0] ?? creator.packages[0] ?? null;
 
   return (
     <section>
@@ -54,6 +57,12 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
           <span className="status-pill">{totalDownloads} downloads</span>
           <span className="status-pill">{creator.providerOrders.length} completed orders</span>
         </div>
+        {featuredServicePackage ? (
+          <div className="actions" style={{ marginTop: 16 }}>
+            <Link className="button" href={`/agents/${featuredServicePackage.slug}#consultation`}>联系该创作者</Link>
+            <Link className="button secondary" href={`/agents/${featuredServicePackage.slug}`}>查看代表智能体</Link>
+          </div>
+        ) : null}
       </div>
 
       <div className="section-header" style={{ marginTop: 24 }}>

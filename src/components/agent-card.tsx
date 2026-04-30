@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import type { AgentPackage, Skill } from "@prisma/client";
-import { getAgentPackageCompleteness } from "@/server/agents/package-service";
+import { getAgentPackageCompleteness, isAgentPackageServiceAvailable } from "@/server/agents/package-service";
 
 type AgentCardProps = {
   agentPackage: AgentPackage & {
@@ -18,6 +18,7 @@ export function AgentCard({ agentPackage }: AgentCardProps) {
     workflows: agentPackage.workflows ?? [],
     metadataJson: agentPackage.metadataJson
   });
+  const serviceAvailable = isAgentPackageServiceAvailable(agentPackage.metadataJson);
 
   return (
     <article className="panel agent-card">
@@ -28,7 +29,13 @@ export function AgentCard({ agentPackage }: AgentCardProps) {
         {agentPackage.skills.length} skills · v{agentPackage.version} · {agentPackage.downloadCount} downloads
       </p>
       <p className="muted">完整度 {completeness.score}%</p>
-      <Link className="button secondary" href={`/agents/${agentPackage.slug}`}>查看详情</Link>
+      {serviceAvailable ? <p className="muted">支持定制/部署服务</p> : null}
+      <div className="actions">
+        <Link className="button secondary" href={`/agents/${agentPackage.slug}`}>查看详情</Link>
+        {serviceAvailable ? (
+          <Link className="button" href={`/agents/${agentPackage.slug}#consultation`}>咨询服务</Link>
+        ) : null}
+      </div>
     </article>
   );
 }

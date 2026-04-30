@@ -61,6 +61,46 @@ export default async function AdminPage() {
     orderBy: { createdAt: "desc" },
     take: 10
   });
+  const creatorRows = await prisma.user.findMany({
+    where: {
+      role: UserRole.CREATOR
+    },
+    include: {
+      packages: {
+        where: {
+          status: "PUBLISHED"
+        }
+      },
+      providerOrders: {
+        where: {
+          status: "COMPLETED"
+        },
+        select: {
+          id: true
+        }
+      }
+    }
+  });
+  const topPackages = [...packages]
+    .filter((agentPackage) => agentPackage.status === "PUBLISHED")
+    .sort((left, right) => right.downloadCount - left.downloadCount)
+    .slice(0, 5);
+  const topCreators = creatorRows
+    .map((creator) => ({
+      id: creator.id,
+      email: creator.email,
+      publishedPackages: creator.packages.length,
+      totalDownloads: creator.packages.reduce((sum, agentPackage) => sum + agentPackage.downloadCount, 0),
+      completedOrders: creator.providerOrders.length
+    }))
+    .sort((left, right) => {
+      if (right.totalDownloads !== left.totalDownloads) {
+        return right.totalDownloads - left.totalDownloads;
+      }
+
+      return right.completedOrders - left.completedOrders;
+    })
+    .slice(0, 5);
 
   return (
     <section>
@@ -108,6 +148,40 @@ export default async function AdminPage() {
               <input type="hidden" name="packageId" value={agentPackage.id} />
               <button className="button secondary" type="submit">下架</button>
             </form>
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>热门智能体</h2>
+          <p className="muted">按下载量查看当前市场里转化最好的包。</p>
+        </div>
+      </div>
+      <div className="list">
+        {topPackages.map((agentPackage) => (
+          <article className="panel" key={agentPackage.id}>
+            <h3>{agentPackage.name}</h3>
+            <p className="muted">
+              作者：{agentPackage.owner.email} · 下载：{agentPackage.downloadCount} · 状态：{agentPackage.status}
+            </p>
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>创作者榜单</h2>
+          <p className="muted">按累计下载和已完成订单排序，便于判断重点服务商。</p>
+        </div>
+      </div>
+      <div className="list">
+        {topCreators.map((creator) => (
+          <article className="panel" key={creator.id}>
+            <h3>{creator.email}</h3>
+            <p className="muted">
+              已发布：{creator.publishedPackages} · 累计下载：{creator.totalDownloads} · 已完成订单：{creator.completedOrders}
+            </p>
           </article>
         ))}
       </div>

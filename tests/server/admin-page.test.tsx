@@ -65,6 +65,18 @@ describe("admin pages", () => {
         owner: {
           email: "creator@example.com"
         }
+      },
+      {
+        id: "pkg-2",
+        name: "Ops Copilot",
+        status: "PUBLISHED",
+        downloadCount: 9,
+        validationResult: {
+          risks: []
+        },
+        owner: {
+          email: "ops@example.com"
+        }
       }
     ] as never);
     vi.mocked(prisma.agentPackage.count).mockResolvedValue(1 as never);
@@ -120,7 +132,27 @@ describe("admin pages", () => {
         id: "user-1",
         email: "creator@example.com",
         role: "CREATOR",
-        whitelistStatus: "ACTIVE"
+        whitelistStatus: "ACTIVE",
+        packages: [
+          {
+            id: "pkg-1",
+            downloadCount: 21
+          }
+        ],
+        providerOrders: []
+      },
+      {
+        id: "user-2",
+        email: "ops@example.com",
+        role: "CREATOR",
+        whitelistStatus: "ACTIVE",
+        packages: [
+          {
+            id: "pkg-2",
+            downloadCount: 9
+          }
+        ],
+        providerOrders: [{ id: "order-2" }]
       }
     ] as never);
 
@@ -133,6 +165,11 @@ describe("admin pages", () => {
     expect(adminHtml).toContain("21");
     expect(adminHtml).toContain("Research Assistant");
     expect(adminHtml).toContain("network.permission");
+    expect(adminHtml).toContain("热门智能体");
+    expect(adminHtml).toContain("Ops Copilot");
+    expect(adminHtml).toContain("创作者榜单");
+    expect(adminHtml).toContain("ops@example.com");
+    expect(adminHtml).toContain("累计下载：21");
     expect(adminHtml).toContain("最近咨询");
     expect(adminHtml).toContain("buyer@example.com");
     expect(adminHtml).toContain("最近订单");

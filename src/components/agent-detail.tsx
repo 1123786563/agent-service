@@ -72,7 +72,7 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
         <p className="muted">风险标记：{validation.risks?.length ? validation.risks.join(", ") : "未发现基础风险标记"}</p>
       </section>
 
-      <section className="panel">
+      <section className="panel" id="consultation">
         <h2>咨询服务</h2>
         <p className="muted">如果你需要定制、部署或培训支持，可以直接提交需求，平台后续会生成服务订单。</p>
         <ConsultationForm agentSlug={agentPackage.slug} />

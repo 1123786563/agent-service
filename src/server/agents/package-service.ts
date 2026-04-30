@@ -78,6 +78,11 @@ export type PackageCompletenessBreakdown = {
   };
 };
 
+type PackageServiceMetadata = {
+  author?: { name?: string; website?: string };
+  service?: { available?: boolean; types?: string[] };
+} | null;
+
 const defaultDeps: PackageServiceDeps = {
   packageStore: {
     createPackage(args) {
@@ -381,10 +386,7 @@ export function getAgentPackageCompleteness(agentPackage: {
   const categories = Array.isArray(agentPackage.categories) ? agentPackage.categories : [];
   const skills = Array.isArray(agentPackage.skills) ? agentPackage.skills : [];
   const workflows = Array.isArray(agentPackage.workflows) ? agentPackage.workflows : [];
-  const metadata = agentPackage.metadataJson as {
-    author?: { name?: string; website?: string };
-    service?: { available?: boolean; types?: string[] };
-  } | null;
+  const metadata = agentPackage.metadataJson as PackageServiceMetadata;
 
   const checks = {
     summary: summary.trim().length > 0,
@@ -408,4 +410,14 @@ export function getAgentPackageCompleteness(agentPackage: {
     score: Math.round((completedChecks / Object.keys(checks).length) * 100),
     checks
   };
+}
+
+export function isAgentPackageServiceAvailable(metadataJson: unknown) {
+  const metadata = metadataJson as PackageServiceMetadata;
+
+  return (
+    Boolean(metadata?.service?.available) &&
+    Array.isArray(metadata?.service?.types) &&
+    metadata.service.types.length > 0
+  );
 }

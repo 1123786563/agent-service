@@ -5,6 +5,7 @@ import {
   createAgentPackageFromZip,
   getPublishedAgentPackageBySlug,
   getAgentPackageCompleteness,
+  isAgentPackageServiceAvailable,
   incrementPublishedAgentPackageDownloadCount,
   listPublishedAgentPackages,
   resolveUniquePackageSlug,
@@ -39,6 +40,18 @@ describe("package service helpers", () => {
       workflows: [],
       metadataJson: {}
     }).score).toBe(0);
+  });
+
+  it("detects whether a package exposes paid services", () => {
+    expect(isAgentPackageServiceAvailable({
+      service: { available: true, types: ["customization"] }
+    })).toBe(true);
+
+    expect(isAgentPackageServiceAvailable({
+      service: { available: false, types: ["customization"] }
+    })).toBe(false);
+
+    expect(isAgentPackageServiceAvailable({})).toBe(false);
   });
 });
 
