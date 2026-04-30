@@ -119,7 +119,11 @@ export async function createSession(userId: string) {
   try {
     await setSessionCookie(session);
   } catch (error) {
-    await deleteSessionRecord(prisma.session, session.id);
+    try {
+      await deleteSessionRecord(prisma.session, session.id);
+    } catch {
+      // Best-effort cleanup. Preserve the original cookie failure for callers.
+    }
     throw error;
   }
 }

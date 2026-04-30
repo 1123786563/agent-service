@@ -1,3 +1,4 @@
+import React from "react";
 import { getLoginStatusMessage } from "@/server/auth/magic-link";
 
 type LoginSearchParams = Record<string, string | string[] | undefined>;
