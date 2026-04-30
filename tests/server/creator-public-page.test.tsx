@@ -37,7 +37,12 @@ describe("creator public page", () => {
             service: { available: true, types: ["customization"] }
           },
           skills: [{ id: "skill-1", description: "Finds sources." }],
-          workflows: [{ id: "workflow-1", description: "Default flow." }]
+          workflows: [{ id: "workflow-1", description: "Default flow." }],
+          consultations: [
+            {
+              orders: [{ status: "COMPLETED" }]
+            }
+          ]
         }
       ],
       providerOrders: [{ id: "order-1" }, { id: "order-2" }]
@@ -49,6 +54,7 @@ describe("creator public page", () => {
 
     expect(html).toContain("creator@example.com");
     expect(html).toContain("21 downloads");
+    expect(html).toContain("1 consultations");
     expect(html).toContain("2 completed orders");
     expect(html).toContain("Research Assistant");
     expect(html).toContain("/agents/research-assistant");

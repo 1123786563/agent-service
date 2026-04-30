@@ -1,19 +1,21 @@
 import React from "react";
 import type { AgentPackage, Skill, User, Workflow } from "@prisma/client";
 import { ConsultationForm } from "./consultation-form";
-import { getAgentPackageCompleteness } from "@/server/agents/package-service";
+import { getAgentPackageCompleteness, getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 
 type AgentDetailProps = {
   agentPackage: AgentPackage & {
     skills: Skill[];
     workflows: Workflow[];
     owner: User;
+    consultations?: Array<{ orders?: Array<{ status?: string }> }>;
   };
 };
 
 export function AgentDetail({ agentPackage }: AgentDetailProps) {
   const validation = agentPackage.validationResult as { risks?: string[] };
   const completeness = getAgentPackageCompleteness(agentPackage);
+  const conversion = getAgentPackageConversionMetrics(agentPackage);
 
   return (
     <article className="detail">
@@ -25,6 +27,10 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
           <p className="muted">
             作者：<a href={`/creators/${agentPackage.owner.id}`}>{agentPackage.owner.email}</a> ·
             版本：{agentPackage.version} · 完整度：{completeness.score}%
+          </p>
+          <p className="muted">
+            下载：{conversion.downloads} · 咨询：{conversion.consultations} · 订单：{conversion.orders} · 完成：
+            {conversion.completedOrders}
           </p>
         </div>
         <a className="button" href={`/api/agents/${agentPackage.slug}/download`}>下载 ZIP</a>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { archiveAgentPackage } from "./actions";
+import { getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 
@@ -14,7 +15,18 @@ export default async function AdminPage() {
   }
 
   const packages = await prisma.agentPackage.findMany({
-    include: { owner: true },
+    include: {
+      owner: true,
+      consultations: {
+        include: {
+          orders: {
+            select: {
+              status: true
+            }
+          }
+        }
+      }
+    },
     orderBy: { createdAt: "desc" }
   });
   const [publishedPackages, packageAggregates, consultationCount, orderCount, completedOrderCount] = await Promise.all([
@@ -167,6 +179,32 @@ export default async function AdminPage() {
             </p>
           </article>
         ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>智能体转化明细</h2>
+          <p className="muted">按包查看下载、咨询、订单和完成率。</p>
+        </div>
+      </div>
+      <div className="list">
+        {topPackages.map((agentPackage) => {
+          const conversion = getAgentPackageConversionMetrics(agentPackage);
+
+          return (
+            <article className="panel" key={agentPackage.id}>
+              <h3>{agentPackage.name}</h3>
+              <p className="muted">
+                下载：{conversion.downloads} · 咨询：{conversion.consultations} · 订单：{conversion.orders} · 完成：
+                {conversion.completedOrders}
+              </p>
+              <p className="muted">
+                咨询率：{conversion.consultationRate}% · 完成率：{conversion.completionRate}% · 综合分：
+                {conversion.conversionScore}
+              </p>
+            </article>
+          );
+        })}
       </div>
 
       <div className="section-header" style={{ marginTop: 32 }}>

@@ -54,6 +54,11 @@ describe("agent detail page", () => {
           description: "Default flow.",
           path: "workflows/main.json"
         }
+      ],
+      consultations: [
+        {
+          orders: [{ status: "COMPLETED" }]
+        }
       ]
     } as never);
 
@@ -69,6 +74,10 @@ describe("agent detail page", () => {
     expect(html).toContain("咨询服务");
     expect(html).toContain("name=\"buyerEmail\"");
     expect(html).toContain("完整度：100%");
+    expect(html).toContain("下载：12");
+    expect(html).toContain("咨询：1");
+    expect(html).toContain("订单：1");
+    expect(html).toContain("完成：");
   });
 
   it("renders not found for an unknown slug", async () => {

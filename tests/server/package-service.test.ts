@@ -6,6 +6,7 @@ import {
   getPublishedAgentPackageBySlug,
   getAgentPackageCompleteness,
   isAgentPackageServiceAvailable,
+  getAgentPackageConversionMetrics,
   incrementPublishedAgentPackageDownloadCount,
   listPublishedAgentPackages,
   resolveUniquePackageSlug,
@@ -52,6 +53,24 @@ describe("package service helpers", () => {
     })).toBe(false);
 
     expect(isAgentPackageServiceAvailable({})).toBe(false);
+  });
+
+  it("computes package conversion metrics from consultations and orders", () => {
+    expect(getAgentPackageConversionMetrics({
+      downloadCount: 20,
+      consultations: [
+        { orders: [{ status: "COMPLETED" }] },
+        { orders: [{ status: "IN_PROGRESS" }] }
+      ]
+    })).toEqual({
+      downloads: 20,
+      consultations: 2,
+      orders: 2,
+      completedOrders: 1,
+      consultationRate: 10,
+      completionRate: 50,
+      conversionScore: 70
+    });
   });
 });
 
@@ -298,5 +317,59 @@ describe("published package queries", () => {
     });
     expect(findPublishedPackageBySlug).toHaveBeenCalledWith("published-agent");
     expect(incrementDownloadCount).toHaveBeenCalledWith("published-agent");
+  });
+
+  it("sorts published packages by derived conversion metrics", async () => {
+    const listPublishedPackages = vi.fn().mockResolvedValue([
+      {
+        slug: "low-conversion",
+        downloadCount: 50,
+        consultations: []
+      },
+      {
+        slug: "high-conversion",
+        downloadCount: 10,
+        consultations: [
+          { orders: [{ status: "COMPLETED" }] },
+          { orders: [{ status: "IN_PROGRESS" }] }
+        ]
+      }
+    ]);
+    const deps = {
+      validateZip: vi.fn(),
+      storage: {
+        saveUploadedZip: vi.fn(),
+        readStoredZip: vi.fn(),
+        deleteStoredZip: vi.fn()
+      },
+      packageStore: {
+        createPackage: vi.fn(),
+        findSlugsWithPrefix: vi.fn(),
+        listPublishedPackages,
+        findPublishedPackageBySlug: vi.fn(),
+        incrementDownloadCount: vi.fn()
+      }
+    };
+
+    await expect(listPublishedAgentPackages({ sort: "conversion" }, deps)).resolves.toEqual([
+      {
+        slug: "high-conversion",
+        downloadCount: 10,
+        consultations: [
+          { orders: [{ status: "COMPLETED" }] },
+          { orders: [{ status: "IN_PROGRESS" }] }
+        ]
+      },
+      {
+        slug: "low-conversion",
+        downloadCount: 50,
+        consultations: []
+      }
+    ]);
+    expect(listPublishedPackages).toHaveBeenCalledWith({
+      query: "",
+      category: "",
+      sort: "conversion"
+    });
   });
 });

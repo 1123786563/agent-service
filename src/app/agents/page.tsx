@@ -22,10 +22,12 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
   const category = getFirstParam(resolvedSearchParams?.category) ?? "";
   const sort = getFirstParam(resolvedSearchParams?.sort) ?? "newest";
   const serviceOnly = getFirstParam(resolvedSearchParams?.service) === "1";
+  const normalizedSort =
+    sort === "downloads" || sort === "consultations" || sort === "conversion" || sort === "name" ? sort : "newest";
   const packages = await listPublishedAgentPackages({
     query,
     category,
-    sort: sort === "downloads" || sort === "name" ? sort : "newest"
+    sort: normalizedSort
   });
   const visiblePackages = serviceOnly
     ? packages.filter((agentPackage) => isAgentPackageServiceAvailable(agentPackage.metadataJson))
@@ -58,9 +60,11 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
         </label>
         <label>
           排序
-          <select defaultValue={sort} name="sort">
+          <select defaultValue={normalizedSort} name="sort">
             <option value="newest">最新发布</option>
             <option value="downloads">下载量</option>
+            <option value="consultations">咨询热度</option>
+            <option value="conversion">综合转化</option>
             <option value="name">名称</option>
           </select>
         </label>
@@ -77,11 +81,11 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
           <p className="muted">优先查看支持定制、部署或培训服务的智能体。</p>
         </div>
         {serviceOnly ? (
-          <Link className="button secondary" href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(sort)}`}>查看全部</Link>
+          <Link className="button secondary" href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(normalizedSort)}`}>查看全部</Link>
         ) : (
           <Link
             className="button secondary"
-            href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(sort)}&service=1`}
+            href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(normalizedSort)}&service=1`}
           >
             仅看可提供服务
           </Link>

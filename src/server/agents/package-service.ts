@@ -54,7 +54,7 @@ export type CreateAgentPackageInput = {
   fileName: string;
 };
 
-export type PublishedPackageSort = "newest" | "downloads" | "name";
+export type PublishedPackageSort = "newest" | "downloads" | "consultations" | "conversion" | "name";
 
 export type ListPublishedPackagesOptions = {
   query?: string;
@@ -76,6 +76,16 @@ export type PackageCompletenessBreakdown = {
     workflowDescriptions: boolean;
     authorAndService: boolean;
   };
+};
+
+export type PackageConversionMetrics = {
+  downloads: number;
+  consultations: number;
+  orders: number;
+  completedOrders: number;
+  consultationRate: number;
+  completionRate: number;
+  conversionScore: number;
 };
 
 type PackageServiceMetadata = {
@@ -154,7 +164,16 @@ const defaultDeps: PackageServiceDeps = {
         include: {
           owner: true,
           skills: true,
-          workflows: true
+          workflows: true,
+          consultations: {
+            include: {
+              orders: {
+                select: {
+                  status: true
+                }
+              }
+            }
+          }
         }
       });
     },
@@ -166,7 +185,16 @@ const defaultDeps: PackageServiceDeps = {
         include: {
           owner: true,
           skills: true,
-          workflows: true
+          workflows: true,
+          consultations: {
+            include: {
+              orders: {
+                select: {
+                  status: true
+                }
+              }
+            }
+          }
         }
       }).then((agentPackage) => {
         if (!agentPackage || agentPackage.status !== AgentPackageStatus.PUBLISHED) {
@@ -342,7 +370,13 @@ export async function createAgentPackageFromZip(
 function normalizeListOptions(options: ListPublishedPackagesOptions = {}): Required<ListPublishedPackagesOptions> {
   const query = (options.query ?? "").trim();
   const category = (options.category ?? "").trim().toLowerCase();
-  const sort = options.sort === "downloads" || options.sort === "name" ? options.sort : "newest";
+  const sort =
+    options.sort === "downloads" ||
+    options.sort === "consultations" ||
+    options.sort === "conversion" ||
+    options.sort === "name"
+      ? options.sort
+      : "newest";
 
   return {
     query,
@@ -355,7 +389,28 @@ export async function listPublishedAgentPackages(
   options: ListPublishedPackagesOptions = {},
   deps: PackageServiceDeps = defaultDeps
 ) {
-  return deps.packageStore.listPublishedPackages(normalizeListOptions(options));
+  const normalizedOptions = normalizeListOptions(options);
+  const packages = await deps.packageStore.listPublishedPackages(normalizedOptions);
+
+  if (normalizedOptions.sort === "consultations") {
+    return [...packages].sort((left, right) => {
+      const leftMetrics = getAgentPackageConversionMetrics(left);
+      const rightMetrics = getAgentPackageConversionMetrics(right);
+
+      return rightMetrics.consultations - leftMetrics.consultations || rightMetrics.downloads - leftMetrics.downloads;
+    });
+  }
+
+  if (normalizedOptions.sort === "conversion") {
+    return [...packages].sort((left, right) => {
+      const leftMetrics = getAgentPackageConversionMetrics(left);
+      const rightMetrics = getAgentPackageConversionMetrics(right);
+
+      return rightMetrics.conversionScore - leftMetrics.conversionScore || rightMetrics.downloads - leftMetrics.downloads;
+    });
+  }
+
+  return packages;
 }
 
 export async function getPublishedAgentPackageBySlug(slug: string, deps: PackageServiceDeps = defaultDeps) {
@@ -420,4 +475,28 @@ export function isAgentPackageServiceAvailable(metadataJson: unknown) {
     Array.isArray(metadata?.service?.types) &&
     metadata.service.types.length > 0
   );
+}
+
+export function getAgentPackageConversionMetrics(agentPackage: {
+  downloadCount?: number;
+  consultations?: Array<{
+    orders?: Array<{
+      status?: string;
+    }>;
+  }>;
+}): PackageConversionMetrics {
+  const downloads = typeof agentPackage.downloadCount === "number" ? agentPackage.downloadCount : 0;
+  const consultations = Array.isArray(agentPackage.consultations) ? agentPackage.consultations : [];
+  const orders = consultations.flatMap((consultation) => consultation.orders ?? []);
+  const completedOrders = orders.filter((order) => order.status === "COMPLETED").length;
+
+  return {
+    downloads,
+    consultations: consultations.length,
+    orders: orders.length,
+    completedOrders,
+    consultationRate: downloads > 0 ? Math.round((consultations.length / downloads) * 100) : 0,
+    completionRate: orders.length > 0 ? Math.round((completedOrders / orders.length) * 100) : 0,
+    conversionScore: downloads + consultations.length * 5 + orders.length * 10 + completedOrders * 20
+  };
 }

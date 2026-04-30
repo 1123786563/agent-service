@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AgentPackageStatus } from "@prisma/client";
 import { AgentCard } from "@/components/agent-card";
-import { isAgentPackageServiceAvailable } from "@/server/agents/package-service";
+import { getAgentPackageConversionMetrics, isAgentPackageServiceAvailable } from "@/server/agents/package-service";
 import { prisma } from "@/server/db";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,16 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
         },
         include: {
           skills: true,
-          workflows: true
+          workflows: true,
+          consultations: {
+            include: {
+              orders: {
+                select: {
+                  status: true
+                }
+              }
+            }
+          }
         },
         orderBy: {
           publishedAt: "desc"
@@ -43,6 +52,9 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
   }
 
   const totalDownloads = creator.packages.reduce((sum, agentPackage) => sum + agentPackage.downloadCount, 0);
+  const totalConsultations = creator.packages.reduce((sum, agentPackage) => {
+    return sum + getAgentPackageConversionMetrics(agentPackage).consultations;
+  }, 0);
   const servicePackages = creator.packages.filter((agentPackage) => isAgentPackageServiceAvailable(agentPackage.metadataJson));
   const featuredServicePackage = servicePackages[0] ?? creator.packages[0] ?? null;
 
@@ -55,6 +67,7 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
         <div className="actions">
           <span className="status-pill">{creator.packages.length} published</span>
           <span className="status-pill">{totalDownloads} downloads</span>
+          <span className="status-pill">{totalConsultations} consultations</span>
           <span className="status-pill">{creator.providerOrders.length} completed orders</span>
         </div>
         {featuredServicePackage ? (

@@ -64,7 +64,15 @@ describe("admin pages", () => {
         },
         owner: {
           email: "creator@example.com"
-        }
+        },
+        consultations: [
+          {
+            orders: [{ status: "COMPLETED" }]
+          },
+          {
+            orders: [{ status: "IN_PROGRESS" }]
+          }
+        ]
       },
       {
         id: "pkg-2",
@@ -76,7 +84,8 @@ describe("admin pages", () => {
         },
         owner: {
           email: "ops@example.com"
-        }
+        },
+        consultations: []
       }
     ] as never);
     vi.mocked(prisma.agentPackage.count).mockResolvedValue(1 as never);
@@ -167,6 +176,11 @@ describe("admin pages", () => {
     expect(adminHtml).toContain("network.permission");
     expect(adminHtml).toContain("热门智能体");
     expect(adminHtml).toContain("Ops Copilot");
+    expect(adminHtml).toContain("智能体转化明细");
+    expect(adminHtml).toContain("咨询：2");
+    expect(adminHtml).toContain("订单：2");
+    expect(adminHtml).toContain("完成：1");
+    expect(adminHtml).toContain("完成率：50%");
     expect(adminHtml).toContain("创作者榜单");
     expect(adminHtml).toContain("ops@example.com");
     expect(adminHtml).toContain("累计下载：21");

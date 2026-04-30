@@ -28,7 +28,12 @@ describe("agents page", () => {
           service: { available: true, types: ["customization"] }
         },
         skills: [{ id: "skill-1", description: "Finds sources." }],
-        workflows: [{ id: "workflow-1", description: "Default flow." }]
+        workflows: [{ id: "workflow-1", description: "Default flow." }],
+        consultations: [
+          {
+            orders: [{ status: "COMPLETED" }]
+          }
+        ]
       },
       {
         id: "pkg-456",
@@ -40,7 +45,8 @@ describe("agents page", () => {
         downloadCount: 2,
         metadataJson: {},
         skills: [{ id: "skill-2", description: "Does routine work." }],
-        workflows: [{ id: "workflow-2", description: "Utility flow." }]
+        workflows: [{ id: "workflow-2", description: "Utility flow." }],
+        consultations: []
       }
     ] as never);
 
@@ -58,9 +64,14 @@ describe("agents page", () => {
     expect(html).toContain("/agents/research-assistant-1-0-0");
     expect(html).toContain("/agents/research-assistant-1-0-0#consultation");
     expect(html).toContain("12 downloads");
+    expect(html).toContain("咨询 1");
+    expect(html).toContain("订单 1");
+    expect(html).toContain("完成 1");
     expect(html).toContain("完整度 100%");
     expect(html).toContain("支持定制/部署服务");
     expect(html).toContain("仅看可提供服务");
+    expect(html).toContain("咨询热度");
+    expect(html).toContain("综合转化");
     expect(html).toContain("name=\"q\"");
     expect(html).toContain("results");
     expect(listPublishedAgentPackages).toHaveBeenCalledWith({
@@ -84,7 +95,8 @@ describe("agents page", () => {
           service: { available: true, types: ["customization"] }
         },
         skills: [{ id: "skill-1", description: "Finds sources." }],
-        workflows: [{ id: "workflow-1", description: "Default flow." }]
+        workflows: [{ id: "workflow-1", description: "Default flow." }],
+        consultations: []
       },
       {
         id: "pkg-456",
@@ -96,7 +108,8 @@ describe("agents page", () => {
         downloadCount: 2,
         metadataJson: {},
         skills: [{ id: "skill-2", description: "Does routine work." }],
-        workflows: [{ id: "workflow-2", description: "Utility flow." }]
+        workflows: [{ id: "workflow-2", description: "Utility flow." }],
+        consultations: []
       }
     ] as never);
 
