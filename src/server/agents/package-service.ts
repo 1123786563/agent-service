@@ -67,6 +67,17 @@ export type MarketplaceSummary = {
   totalDownloads: number;
 };
 
+export type PackageCompletenessBreakdown = {
+  score: number;
+  checks: {
+    summary: boolean;
+    categories: boolean;
+    skillDescriptions: boolean;
+    workflowDescriptions: boolean;
+    authorAndService: boolean;
+  };
+};
+
 const defaultDeps: PackageServiceDeps = {
   packageStore: {
     createPackage(args) {
@@ -357,4 +368,44 @@ export async function incrementPublishedAgentPackageDownloadCount(slug: string, 
   }
 
   await deps.packageStore.incrementDownloadCount(normalizedSlug);
+}
+
+export function getAgentPackageCompleteness(agentPackage: {
+  summary: string;
+  categories: string[];
+  skills: Array<{ description: string }>;
+  workflows: Array<{ description: string }>;
+  metadataJson: unknown;
+}): PackageCompletenessBreakdown {
+  const summary = typeof agentPackage.summary === "string" ? agentPackage.summary : "";
+  const categories = Array.isArray(agentPackage.categories) ? agentPackage.categories : [];
+  const skills = Array.isArray(agentPackage.skills) ? agentPackage.skills : [];
+  const workflows = Array.isArray(agentPackage.workflows) ? agentPackage.workflows : [];
+  const metadata = agentPackage.metadataJson as {
+    author?: { name?: string; website?: string };
+    service?: { available?: boolean; types?: string[] };
+  } | null;
+
+  const checks = {
+    summary: summary.trim().length > 0,
+    categories: categories.length > 0,
+    skillDescriptions:
+      skills.length > 0 &&
+      skills.every((skill) => typeof skill.description === "string" && skill.description.trim().length > 0),
+    workflowDescriptions:
+      workflows.length > 0 &&
+      workflows.every((workflow) => typeof workflow.description === "string" && workflow.description.trim().length > 0),
+    authorAndService:
+      Boolean(metadata?.author?.name?.trim()) &&
+      Boolean(metadata?.service?.available) &&
+      Array.isArray(metadata?.service?.types) &&
+      metadata.service.types.length > 0
+  };
+
+  const completedChecks = Object.values(checks).filter(Boolean).length;
+
+  return {
+    score: Math.round((completedChecks / Object.keys(checks).length) * 100),
+    checks
+  };
 }

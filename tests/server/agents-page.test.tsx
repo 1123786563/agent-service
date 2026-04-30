@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-vi.mock("@/server/agents/package-service", () => ({
-  listPublishedAgentPackages: vi.fn()
-}));
+vi.mock("@/server/agents/package-service", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/server/agents/package-service")>();
+  return {
+    ...actual,
+    listPublishedAgentPackages: vi.fn()
+  };
+});
 
 import AgentsPage from "@/app/agents/page";
 import { listPublishedAgentPackages } from "@/server/agents/package-service";
@@ -19,7 +23,12 @@ describe("agents page", () => {
         version: "1.0.0",
         categories: ["research", "writing"],
         downloadCount: 12,
-        skills: [{ id: "skill-1" }]
+        metadataJson: {
+          author: { name: "Creator" },
+          service: { available: true, types: ["customization"] }
+        },
+        skills: [{ id: "skill-1", description: "Finds sources." }],
+        workflows: [{ id: "workflow-1", description: "Default flow." }]
       }
     ] as never);
 
@@ -36,6 +45,7 @@ describe("agents page", () => {
     expect(html).toContain("research / writing");
     expect(html).toContain("/agents/research-assistant-1-0-0");
     expect(html).toContain("12 downloads");
+    expect(html).toContain("完整度 100%");
     expect(html).toContain("name=\"q\"");
     expect(html).toContain("results");
     expect(listPublishedAgentPackages).toHaveBeenCalledWith({

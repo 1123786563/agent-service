@@ -1,6 +1,7 @@
 import React from "react";
 import type { AgentPackage, Skill, User, Workflow } from "@prisma/client";
 import { ConsultationForm } from "./consultation-form";
+import { getAgentPackageCompleteness } from "@/server/agents/package-service";
 
 type AgentDetailProps = {
   agentPackage: AgentPackage & {
@@ -12,6 +13,7 @@ type AgentDetailProps = {
 
 export function AgentDetail({ agentPackage }: AgentDetailProps) {
   const validation = agentPackage.validationResult as { risks?: string[] };
+  const completeness = getAgentPackageCompleteness(agentPackage);
 
   return (
     <article className="detail">
@@ -20,7 +22,10 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
           <p className="eyebrow">Hermes-agent ZIP</p>
           <h1>{agentPackage.name}</h1>
           <p className="lede">{agentPackage.summary}</p>
-          <p className="muted">作者：{agentPackage.owner.email} · 版本：{agentPackage.version}</p>
+          <p className="muted">
+            作者：<a href={`/creators/${agentPackage.owner.id}`}>{agentPackage.owner.email}</a> ·
+            版本：{agentPackage.version} · 完整度：{completeness.score}%
+          </p>
         </div>
         <a className="button" href={`/api/agents/${agentPackage.slug}/download`}>下载 ZIP</a>
       </section>
@@ -58,6 +63,12 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
           <li>在导入 Hermes-agent 前检查 README、权限和环境变量。</li>
           <li>确认配置后导入 Hermes-agent。</li>
         </ol>
+        <p className="muted">
+          完整度检查：摘要 {completeness.checks.summary ? "OK" : "缺失"} · 分类 {completeness.checks.categories ? "OK" : "缺失"} ·
+          Skill 描述 {completeness.checks.skillDescriptions ? "OK" : "缺失"} ·
+          流程描述 {completeness.checks.workflowDescriptions ? "OK" : "缺失"} ·
+          作者/服务 {completeness.checks.authorAndService ? "OK" : "缺失"}
+        </p>
         <p className="muted">风险标记：{validation.risks?.length ? validation.risks.join(", ") : "未发现基础风险标记"}</p>
       </section>
 

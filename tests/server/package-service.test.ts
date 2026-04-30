@@ -4,6 +4,7 @@ import { createAgentZip } from "@/test/fixtures";
 import {
   createAgentPackageFromZip,
   getPublishedAgentPackageBySlug,
+  getAgentPackageCompleteness,
   incrementPublishedAgentPackageDownloadCount,
   listPublishedAgentPackages,
   resolveUniquePackageSlug,
@@ -17,6 +18,27 @@ describe("package service helpers", () => {
     expect(resolveUniquePackageSlug("research-assistant", ["research-assistant", "research-assistant-2"])).toBe(
       "research-assistant-3"
     );
+  });
+
+  it("computes package completeness from market-facing metadata", () => {
+    expect(getAgentPackageCompleteness({
+      summary: "Summarizes research findings.",
+      categories: ["research"],
+      skills: [{ description: "Finds sources." }],
+      workflows: [{ description: "Default flow." }],
+      metadataJson: {
+        author: { name: "Creator" },
+        service: { available: true, types: ["customization"] }
+      }
+    }).score).toBe(100);
+
+    expect(getAgentPackageCompleteness({
+      summary: "",
+      categories: [],
+      skills: [{ description: "" }],
+      workflows: [],
+      metadataJson: {}
+    }).score).toBe(0);
   });
 });
 
