@@ -54,6 +54,8 @@ describe("agent detail page", () => {
     expect(html).toContain("creator@example.com");
     expect(html).toContain("/api/agents/research-assistant-1-0-0/download");
     expect(html).toContain("network.permission");
+    expect(html).toContain("咨询服务");
+    expect(html).toContain("name=\"buyerEmail\"");
   });
 
   it("renders not found for an unknown slug", async () => {

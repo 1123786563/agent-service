@@ -129,6 +129,14 @@ h1 {
   font: inherit;
 }
 
+.textarea {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+}
+
 .section-header {
   display: flex;
   align-items: flex-start;
@@ -163,6 +171,19 @@ h1 {
 
 .muted {
   color: var(--muted);
+}
+
+.inline-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.error-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #b42318;
 }
 
 .detail {
