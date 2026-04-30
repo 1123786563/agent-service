@@ -76,6 +76,10 @@ export type ResolveDisputedServiceOrderInput = {
   nextStatus: "IN_PROGRESS" | "DELIVERED" | "CANCELLED";
 };
 
+export type CancelServiceOrderInput = {
+  orderId: string;
+};
+
 const defaultDeps: OrderServiceDeps = {
   store: {
     findConsultationById(id) {
@@ -386,6 +390,33 @@ export async function resolveDisputedServiceOrder(
     where: { id: orderId },
     data: {
       status: input.nextStatus
+    }
+  });
+}
+
+export async function cancelServiceOrder(
+  input: CancelServiceOrderInput,
+  deps: OrderServiceDeps = defaultDeps
+) {
+  const orderId = input.orderId.trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  const order = await deps.store.findUniqueById(orderId);
+  if (!order) {
+    throw new Error("Service order not found");
+  }
+
+  const cancellablePaymentStatuses: PaymentStatus[] = [PaymentStatus.UNPAID, PaymentStatus.FAILED];
+  if (order.status !== ServiceOrderStatus.PENDING_PAYMENT || !cancellablePaymentStatuses.includes(order.paymentStatus)) {
+    throw new Error("Only unpaid pending orders can be cancelled");
+  }
+
+  return deps.store.updateOrder({
+    where: { id: orderId },
+    data: {
+      status: ServiceOrderStatus.CANCELLED
     }
   });
 }

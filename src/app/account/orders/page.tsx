@@ -1,6 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
+import { CancelOrderButton } from "@/components/cancel-order-button";
 import { CompleteOrderButton } from "@/components/complete-order-button";
 import { DisputeOrderButton } from "@/components/dispute-order-button";
 import { OrderStatusPill } from "@/components/order-status-pill";
@@ -68,9 +69,12 @@ export default async function AccountOrdersPage() {
                 {order.paymentStatus === PaymentStatus.FAILED ? (
                   <p className="muted">上一次支付失败，请重新发起支付。</p>
                 ) : null}
-              <form action={`/api/orders/${order.id}/pay`} method="post">
-                <button className="button" type="submit">去支付</button>
-              </form>
+                <div className="actions">
+                  <form action={`/api/orders/${order.id}/pay`} method="post">
+                    <button className="button" type="submit">去支付</button>
+                  </form>
+                  <CancelOrderButton orderId={order.id} />
+                </div>
               </section>
             ) : null}
 

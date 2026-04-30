@@ -7,7 +7,8 @@ import {
   markServiceOrderPaid,
   markServiceOrderPaymentFailed,
   markServiceOrderDisputed,
-  resolveDisputedServiceOrder
+  resolveDisputedServiceOrder,
+  cancelServiceOrder
 } from "@/server/orders/service";
 
 describe("order service", () => {
@@ -283,5 +284,34 @@ describe("order service", () => {
       }
     });
     expect(order.status).toBe(ServiceOrderStatus.DELIVERED);
+  });
+
+  it("cancels unpaid pending orders", async () => {
+    const store = {
+      findConsultationById: vi.fn(),
+      consultationHasOrder: vi.fn(),
+      createOrderForConsultation: vi.fn(),
+      findManyForBuyerEmail: vi.fn(),
+      findManyForProvider: vi.fn(),
+      findUniqueById: vi.fn().mockResolvedValue({
+        id: "order-4",
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentStatus: PaymentStatus.UNPAID
+      }),
+      updateOrder: vi.fn().mockResolvedValue({
+        id: "order-4",
+        status: ServiceOrderStatus.CANCELLED
+      })
+    };
+
+    const order = await cancelServiceOrder({ orderId: "order-4" }, { store });
+
+    expect(store.updateOrder).toHaveBeenCalledWith({
+      where: { id: "order-4" },
+      data: {
+        status: ServiceOrderStatus.CANCELLED
+      }
+    });
+    expect(order.status).toBe(ServiceOrderStatus.CANCELLED);
   });
 });

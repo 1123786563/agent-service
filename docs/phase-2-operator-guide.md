@@ -38,6 +38,7 @@
 3. For an unpaid order, click `去支付`.
 4. The app redirects to the dev payment completion route.
 5. The dev completion route marks the order as paid and transitions it to `IN_PROGRESS`.
+6. Buyer can also cancel an unpaid order directly from `/account/orders`.
 
 ## Payment Failure Recovery
 
