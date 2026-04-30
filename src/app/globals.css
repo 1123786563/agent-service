@@ -155,3 +155,45 @@ h1 {
   font-size: 0.82rem;
   font-weight: 800;
 }
+
+.agent-card {
+  display: grid;
+  gap: 10px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.detail {
+  display: grid;
+  gap: 18px;
+}
+
+.detail-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+
+.list {
+  display: grid;
+  gap: 14px;
+}
+
+code {
+  display: inline-flex;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #eef2f7;
+}
+
+@media (max-width: 720px) {
+  .detail-hero,
+  .section-header {
+    grid-template-columns: 1fr;
+  }
+}
