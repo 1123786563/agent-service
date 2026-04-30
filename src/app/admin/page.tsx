@@ -17,6 +17,26 @@ export default async function AdminPage() {
     include: { owner: true },
     orderBy: { createdAt: "desc" }
   });
+  const consultations = await prisma.consultation.findMany({
+    include: {
+      agentPackage: true,
+      provider: true
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10
+  });
+  const orders = await prisma.serviceOrder.findMany({
+    include: {
+      provider: true,
+      consultation: {
+        include: {
+          agentPackage: true
+        }
+      }
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10
+  });
 
   return (
     <section>
@@ -37,6 +57,46 @@ export default async function AdminPage() {
               <input type="hidden" name="packageId" value={agentPackage.id} />
               <button className="button secondary" type="submit">下架</button>
             </form>
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>最近咨询</h2>
+          <p className="muted">查看咨询状态、买家邮箱和对应服务商。</p>
+        </div>
+      </div>
+      <div className="list">
+        {consultations.map((consultation) => (
+          <article className="panel" key={consultation.id}>
+            <h3>{consultation.agentPackage.name}</h3>
+            <p className="muted">
+              买家：{consultation.buyerEmail} · 服务商：{consultation.provider.email}
+            </p>
+            <p>{consultation.requirement}</p>
+            <p className="muted">状态：{consultation.status}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>最近订单</h2>
+          <p className="muted">查看订单、支付和服务执行状态，便于人工处理异常。</p>
+        </div>
+      </div>
+      <div className="list">
+        {orders.map((order) => (
+          <article className="panel" key={order.id}>
+            <h3>{order.title}</h3>
+            <p className="muted">
+              买家：{order.buyerEmail} · 服务商：{order.provider.email}
+            </p>
+            <p>{order.consultation.agentPackage.name}</p>
+            <p className="muted">
+              订单状态：{order.status} · 支付状态：{order.paymentStatus}
+            </p>
           </article>
         ))}
       </div>

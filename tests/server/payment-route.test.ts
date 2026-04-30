@@ -1,6 +1,10 @@
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/server/auth/session", () => ({
+  getCurrentUser: vi.fn()
+}));
+
 vi.mock("@/server/orders/service", () => ({
   getServiceOrderById: vi.fn(),
   markServiceOrderPaid: vi.fn()
@@ -9,12 +13,17 @@ vi.mock("@/server/orders/service", () => ({
 import { POST as createPaymentSessionRoute } from "@/app/api/orders/[id]/pay/route";
 import { GET as completeDevPaymentRoute } from "@/app/api/payments/dev/complete/route";
 import { POST as paymentWebhookRoute } from "@/app/api/payments/webhook/route";
+import { getCurrentUser } from "@/server/auth/session";
 import { getServiceOrderById, markServiceOrderPaid } from "@/server/orders/service";
 
 describe("payment routes", () => {
-  it("creates a dev checkout session for a payable order", async () => {
+  it("redirects a buyer into the dev checkout flow for a payable order", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      email: "buyer@example.com"
+    } as never);
     vi.mocked(getServiceOrderById).mockResolvedValue({
       id: "order-1",
+      buyerEmail: "buyer@example.com",
       status: ServiceOrderStatus.PENDING_PAYMENT,
       paymentStatus: PaymentStatus.UNPAID,
       paymentProvider: "dev",
@@ -27,11 +36,32 @@ describe("payment routes", () => {
       params: Promise.resolve({ id: "order-1" })
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toContain("/api/payments/dev/complete?");
+  });
+
+  it("rejects payment attempts for orders owned by another buyer", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      email: "buyer@example.com"
+    } as never);
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      buyerEmail: "other@example.com",
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.UNPAID,
+      paymentProvider: "dev",
+      paymentReference: null
+    } as never);
+
+    const response = await createPaymentSessionRoute(new Request("http://localhost/api/orders/order-1/pay", {
+      method: "POST"
+    }), {
+      params: Promise.resolve({ id: "order-1" })
+    });
+
+    expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
-      provider: "dev",
-      checkoutUrl: expect.stringContaining("/api/payments/dev/complete?"),
-      paymentReference: expect.stringMatching(/^devpay_/)
+      errors: ["Buyer access is required"]
     });
   });
 

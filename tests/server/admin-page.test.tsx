@@ -17,6 +17,12 @@ vi.mock("@/server/db", () => ({
     agentPackage: {
       findMany: vi.fn()
     },
+    consultation: {
+      findMany: vi.fn()
+    },
+    serviceOrder: {
+      findMany: vi.fn()
+    },
     user: {
       findMany: vi.fn()
     }
@@ -56,6 +62,37 @@ describe("admin pages", () => {
         }
       }
     ] as never);
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([
+      {
+        id: "consultation-1",
+        buyerEmail: "buyer@example.com",
+        requirement: "Need deployment help",
+        status: "NEW",
+        agentPackage: {
+          name: "Research Assistant"
+        },
+        provider: {
+          email: "creator@example.com"
+        }
+      }
+    ] as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        id: "order-1",
+        title: "Deployment package",
+        buyerEmail: "buyer@example.com",
+        status: "PENDING_PAYMENT",
+        paymentStatus: "UNPAID",
+        provider: {
+          email: "creator@example.com"
+        },
+        consultation: {
+          agentPackage: {
+            name: "Research Assistant"
+          }
+        }
+      }
+    ] as never);
     vi.mocked(prisma.user.findMany).mockResolvedValue([
       {
         id: "user-1",
@@ -71,6 +108,10 @@ describe("admin pages", () => {
     expect(adminHtml).toContain("管理后台");
     expect(adminHtml).toContain("Research Assistant");
     expect(adminHtml).toContain("network.permission");
+    expect(adminHtml).toContain("最近咨询");
+    expect(adminHtml).toContain("buyer@example.com");
+    expect(adminHtml).toContain("最近订单");
+    expect(adminHtml).toContain("PENDING_PAYMENT");
     expect(whitelistHtml).toContain("白名单管理");
     expect(whitelistHtml).toContain("creator@example.com");
   });
