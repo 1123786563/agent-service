@@ -44,6 +44,7 @@ describe("account orders page", () => {
         priceCents: 50000,
         status: ServiceOrderStatus.PENDING_PAYMENT,
         paymentStatus: PaymentStatus.UNPAID,
+        deliveries: [],
         consultation: {
           agentPackage: {
             name: "Research Assistant"
@@ -62,5 +63,44 @@ describe("account orders page", () => {
     expect(html).toContain("creator@example.com");
     expect(html).toContain("去支付");
     expect(html).toContain("/api/orders/order-1/pay");
+  });
+
+  it("renders latest delivery review controls for delivered orders", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      email: "buyer@example.com"
+    } as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        id: "order-1",
+        title: "Deployment package",
+        scope: "Deploy for 20 internal users",
+        currency: "USD",
+        priceCents: 50000,
+        status: ServiceOrderStatus.DELIVERED,
+        paymentStatus: PaymentStatus.PAID,
+        deliveries: [
+          {
+            id: "delivery-1",
+            note: "Final setup notes"
+          }
+        ],
+        consultation: {
+          agentPackage: {
+            name: "Research Assistant"
+          }
+        },
+        provider: {
+          email: "creator@example.com"
+        }
+      }
+    ] as never);
+
+    const html = renderToStaticMarkup(await AccountOrdersPage());
+
+    expect(html).toContain("待验收");
+    expect(html).toContain("Final setup notes");
+    expect(html).toContain("/api/orders/order-1/deliveries/delivery-1/download");
+    expect(html).toContain("/api/orders/order-1/complete");
+    expect(html).toContain("确认完成");
   });
 });

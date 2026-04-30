@@ -1,6 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
+import { CompleteOrderButton } from "@/components/complete-order-button";
 import { OrderStatusPill } from "@/components/order-status-pill";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -22,7 +23,12 @@ export default async function AccountOrdersPage() {
           agentPackage: true
         }
       },
-      provider: true
+      provider: true,
+      deliveries: {
+        orderBy: {
+          submittedAt: "desc"
+        }
+      }
     },
     orderBy: {
       createdAt: "desc"
@@ -59,6 +65,24 @@ export default async function AccountOrdersPage() {
               <form action={`/api/orders/${order.id}/pay`} method="post">
                 <button className="button" type="submit">去支付</button>
               </form>
+            ) : null}
+
+            {order.deliveries[0] ? (
+              <section>
+                <h3>交付物</h3>
+                {order.deliveries[0].note ? <p>{order.deliveries[0].note}</p> : null}
+                <div className="actions">
+                  <a
+                    className="button secondary"
+                    href={`/api/orders/${order.id}/deliveries/${order.deliveries[0].id}/download`}
+                  >
+                    下载交付物
+                  </a>
+                  {order.status === ServiceOrderStatus.DELIVERED ? (
+                    <CompleteOrderButton orderId={order.id} />
+                  ) : null}
+                </div>
+              </section>
             ) : null}
           </article>
         ))}
