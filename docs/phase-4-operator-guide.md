@@ -56,9 +56,10 @@
    - orders
    - completed orders
 3. Review `支付异常订单` and use `重置为待支付` when a buyer needs to retry.
-4. Review `待结算订单` and use `标记已结算` after an off-platform payout is completed.
-5. Review `争议订单` and resolve each order back to `IN_PROGRESS`, `DELIVERED`, or `CANCELLED`.
-6. Use `运营分析` to open `/admin/analytics`.
+4. Review `待结算订单` and use `提交结算批次` to move completed paid orders into payout processing.
+5. Review `待出款结算批次` and use `标记已出款` only after the real bank transfer or offline payout is complete.
+6. Review `争议订单` and resolve each order back to `IN_PROGRESS`, `DELIVERED`, or `CANCELLED`.
+7. Use `运营分析` to open `/admin/analytics`.
 
 ## Admin Analytics
 
@@ -80,3 +81,4 @@
 - No page-view tracking.
 - No event warehouse or historical trend charting.
 - Conversion rates are derived from current relational data, not a dedicated analytics pipeline.
+- Settlement tracking now has batches, but Phase 4 analytics still focuses on operational aggregates rather than accounting exports.

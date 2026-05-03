@@ -146,6 +146,13 @@ test("creator uploads a delivery and buyer confirms completion", async ({ browse
     });
     expect(deliveredOrder?.status).toBe(ServiceOrderStatus.DELIVERED);
     expect(deliveredOrder?.deliveries[0]?.note).toBe(deliveryNote);
+    expect(deliveredOrder?.deliveries[0]?.id).toBeTruthy();
+
+    const anonymousContext = await browser.newContext();
+    const anonymousPage = await anonymousContext.newPage();
+    await anonymousPage.goto(`/api/orders/${order.id}/deliveries/${deliveredOrder?.deliveries[0]?.id}/download`);
+    await expect(anonymousPage).toHaveURL(/\/login$/);
+    await anonymousContext.close();
 
     const buyerToken = await createTestSession(buyer.id);
     const buyerContext = await browser.newContext();
@@ -160,6 +167,11 @@ test("creator uploads a delivery and buyer confirms completion", async ({ browse
     await buyerPage.goto("/account/orders");
     await expect(buyerPage.getByText(deliveryNote)).toBeVisible();
     await expect(buyerPage.getByRole("link", { name: "下载交付物" })).toBeVisible();
+    const [download] = await Promise.all([
+      buyerPage.waitForEvent("download"),
+      buyerPage.getByRole("link", { name: "下载交付物" }).click()
+    ]);
+    expect(await download.path()).toBeTruthy();
     await buyerPage.getByRole("button", { name: "确认完成" }).click();
     await expect(buyerPage.getByText("已完成")).toBeVisible();
     await buyerContext.close();

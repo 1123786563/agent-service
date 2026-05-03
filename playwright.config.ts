@@ -16,7 +16,8 @@ export default defineConfig({
     reuseExistingServer: true,
     env: {
       ...process.env,
-      DATABASE_URL: testDatabaseUrl
+      DATABASE_URL: testDatabaseUrl,
+      ADMIN_EMAILS: process.env.ADMIN_EMAILS ?? "admin@example.com"
     }
   },
   projects: [

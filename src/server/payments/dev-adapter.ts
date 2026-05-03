@@ -132,7 +132,16 @@ export const devPaymentAdapter: PaymentProvider = {
     };
   },
   async parseWebhook(request) {
-    const payload = await request.json();
-    return devWebhookPayloadSchema.parse(payload);
+    const payload = devWebhookPayloadSchema.parse(await request.json());
+    return {
+      type: payload.type,
+      provider: payload.provider,
+      providerEventId: payload.providerEventId,
+      orderId: payload.orderId,
+      paymentReference: payload.paymentReference ?? null,
+      amountMinor: payload.amountMinor ?? null,
+      currency: payload.currency?.trim().toUpperCase() ?? null,
+      rawPayload: payload
+    } satisfies NormalizedPaymentEvent;
   }
 };

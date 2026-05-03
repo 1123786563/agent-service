@@ -1,5 +1,6 @@
 import { AgentPackageStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/server/db";
+import type { DownloadTicketActorScope } from "./download-tickets";
 
 export async function authorizeAgentZipDownload(slug: string) {
   const normalizedSlug = slug.trim();
@@ -66,7 +67,7 @@ export async function authorizeDeliveryAssetDownload(input: {
 
   const requesterEmail = input.requester.email.toLowerCase();
   const buyerEmail = delivery.serviceOrder.buyerEmail.toLowerCase();
-  const actorScope =
+  const actorScope: DownloadTicketActorScope | null =
     input.requester.role === UserRole.ADMIN
       ? "admin"
       : input.requester.userId === delivery.providerId

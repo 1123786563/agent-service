@@ -1,5 +1,5 @@
 import { Readable } from "node:stream";
-import type { PutObjectInput, StorageProvider } from "./provider";
+import type { PutObjectInput, StorageProvider, StoredObject } from "./provider";
 
 export class S3CompatibleStorageProvider implements StorageProvider {
   kind = "s3-compatible" as const;
@@ -8,15 +8,18 @@ export class S3CompatibleStorageProvider implements StorageProvider {
     return `${input.scope}/${input.fileName}`;
   }
 
-  async putObject() {
+  async putObject(input: PutObjectInput): Promise<StoredObject> {
+    void input;
     throw new Error("S3-compatible storage is not configured");
   }
 
-  async getObjectStream() {
+  async getObjectStream(input: { objectKey: string }): Promise<Readable> {
+    void input;
     throw new Error("S3-compatible storage is not configured");
   }
 
-  async deleteObject() {
+  async deleteObject(input: { objectKey: string }): Promise<void> {
+    void input;
     throw new Error("S3-compatible storage is not configured");
   }
 }

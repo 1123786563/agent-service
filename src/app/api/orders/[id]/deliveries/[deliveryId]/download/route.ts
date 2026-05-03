@@ -9,11 +9,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string; deliveryId: string }> }
 ) {
   const session = await getCurrentSession();
-  const user = session?.user ?? null;
-
-  if (!user) {
+  if (!session?.user) {
     return Response.redirect(new URL("/login", request.url), 303);
   }
+  const user = session.user;
 
   const { id, deliveryId } = await params;
 
