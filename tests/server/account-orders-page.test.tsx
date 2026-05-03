@@ -5,7 +5,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((location: string) => {
     throw new Error(`REDIRECT:${location}`);
-  })
+  }),
+  useRouter: vi.fn(() => ({
+    refresh: vi.fn()
+  }))
 }));
 
 vi.mock("@/server/auth/session", () => ({
@@ -63,7 +66,6 @@ describe("account orders page", () => {
     expect(html).toContain("creator@example.com");
     expect(html).toContain("去支付");
     expect(html).toContain("/api/orders/order-1/pay");
-    expect(html).toContain("/api/orders/order-1/cancel");
     expect(html).toContain("取消订单");
   });
 
@@ -137,7 +139,6 @@ describe("account orders page", () => {
 
     expect(html).toContain("上一次支付失败，请重新发起支付。");
     expect(html).toContain("/api/orders/order-2/pay");
-    expect(html).toContain("/api/orders/order-2/cancel");
     expect(html).toContain("去支付");
   });
 });
