@@ -1,34 +1,18 @@
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
 import { z } from "zod";
+import { recordAuditLog } from "@/server/audit/service";
 import {
   getServiceOrderById,
   markServiceOrderPaid,
   markServiceOrderPaymentCancelled,
   markServiceOrderPaymentFailed
 } from "@/server/orders/service";
+import { recordPaymentEvent } from "./ledger";
 import { devPaymentAdapter } from "./dev-adapter";
+import { StripePaymentProvider } from "./stripe-adapter";
+import { paymentStatusFromEventType, type NormalizedPaymentEvent } from "./webhook-events";
 
 const paymentProviderSchema = z.string().trim().min(1);
-
-export const paymentEventSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("payment.succeeded"),
-    orderId: z.string().trim().min(1),
-    paymentReference: z.string().trim().min(1).nullable().optional()
-  }),
-  z.object({
-    type: z.literal("payment.failed"),
-    orderId: z.string().trim().min(1),
-    paymentReference: z.string().trim().min(1).nullable().optional()
-  }),
-  z.object({
-    type: z.literal("payment.cancelled"),
-    orderId: z.string().trim().min(1),
-    paymentReference: z.string().trim().min(1).nullable().optional()
-  })
-]);
-
-export type PaymentEvent = z.infer<typeof paymentEventSchema>;
 
 export type PaymentCheckoutSession = {
   provider: string;
@@ -36,22 +20,30 @@ export type PaymentCheckoutSession = {
   paymentReference: string;
 };
 
-export type PaymentAdapter = {
-  provider: string;
-  createPaymentSession(input: {
-    orderId: string;
-    paymentReference?: string | null;
-  }): Promise<PaymentCheckoutSession>;
-  parseWebhookRequest(request: Request): Promise<PaymentEvent>;
+export type CreateCheckoutSessionInput = {
+  orderId: string;
+  amountMinor: number;
+  currency: string;
+  paymentReference?: string | null;
 };
+
+export interface PaymentProvider {
+  provider: string;
+  createCheckoutSession(input: CreateCheckoutSessionInput): Promise<PaymentCheckoutSession>;
+  parseWebhook(request: Request): Promise<NormalizedPaymentEvent>;
+}
 
 export function getPaymentProvider(defaultProvider = process.env.PAYMENT_PROVIDER ?? "dev") {
   return paymentProviderSchema.parse(defaultProvider).toLowerCase();
 }
 
-export function getPaymentAdapter(provider = getPaymentProvider()): PaymentAdapter {
+export function getPaymentAdapter(provider = getPaymentProvider()): PaymentProvider {
   if (provider === devPaymentAdapter.provider) {
     return devPaymentAdapter;
+  }
+
+  if (provider === StripePaymentProvider.providerName) {
+    return new StripePaymentProvider();
   }
 
   throw new Error(`Unsupported payment provider: ${provider}`);
@@ -70,29 +62,81 @@ export async function createPaymentSessionForOrder(orderId: string) {
 
   const adapter = getPaymentAdapter(order.paymentProvider);
 
-  return adapter.createPaymentSession({
+  return adapter.createCheckoutSession({
     orderId: order.id,
+    amountMinor: order.priceCents,
+    currency: order.currency,
     paymentReference: order.paymentReference
   });
 }
 
-export async function applyPaymentEvent(event: PaymentEvent) {
-  if (event.type === "payment.failed") {
-    return markServiceOrderPaymentFailed({
-      orderId: event.orderId,
-      paymentReference: event.paymentReference ?? undefined
-    });
+async function validateNormalizedPaymentEvent(event: NormalizedPaymentEvent) {
+  const order = await getServiceOrderById(event.orderId);
+  if (!order) {
+    throw new Error("Service order not found");
   }
 
-  if (event.type === "payment.cancelled") {
-    return markServiceOrderPaymentCancelled({
-      orderId: event.orderId,
-      paymentReference: event.paymentReference ?? undefined
-    });
+  if (event.amountMinor != null && event.amountMinor !== order.priceCents) {
+    throw new Error("Payment amount does not match service order");
   }
 
-  return markServiceOrderPaid({
+  if (event.currency && event.currency.toUpperCase() !== order.currency.toUpperCase()) {
+    throw new Error("Payment currency does not match service order");
+  }
+
+  return order;
+}
+
+export async function applyPaymentEvent(event: NormalizedPaymentEvent) {
+  const order = await validateNormalizedPaymentEvent(event);
+  const ledgerResult = await recordPaymentEvent({
     orderId: event.orderId,
-    paymentReference: event.paymentReference ?? undefined
+    provider: event.provider,
+    providerEventId: event.providerEventId,
+    providerPaymentId: event.providerPaymentId ?? null,
+    providerCheckoutSessionId: event.providerCheckoutSessionId ?? null,
+    amountMinor: event.amountMinor ?? order.priceCents,
+    currency: event.currency?.toUpperCase() ?? order.currency,
+    paymentStatus: paymentStatusFromEventType(event.type),
+    failureReason: event.failureReason ?? null,
+    idempotencyKey: event.idempotencyKey ?? null,
+    rawPayload: event.rawPayload
   });
+
+  if (ledgerResult.duplicate) {
+    return order;
+  }
+
+  let updatedOrder;
+  if (event.type === "payment.failed") {
+    updatedOrder = await markServiceOrderPaymentFailed({
+      orderId: event.orderId,
+      paymentReference: event.paymentReference ?? undefined
+    });
+  } else if (event.type === "payment.cancelled") {
+    updatedOrder = await markServiceOrderPaymentCancelled({
+      orderId: event.orderId,
+      paymentReference: event.paymentReference ?? undefined
+    });
+  } else {
+    updatedOrder = await markServiceOrderPaid({
+      orderId: event.orderId,
+      paymentReference: event.paymentReference ?? undefined
+    });
+  }
+
+  await recordAuditLog({
+    actorRole: "SYSTEM",
+    action: "payment.webhook.processed",
+    targetType: "ServiceOrder",
+    targetId: event.orderId,
+    afterSnapshot: {
+      provider: event.provider,
+      providerEventId: event.providerEventId,
+      type: event.type,
+      paymentStatus: paymentStatusFromEventType(event.type)
+    }
+  });
+
+  return updatedOrder;
 }

@@ -3,7 +3,7 @@ import { applyPaymentEvent, getPaymentAdapter, getPaymentProvider } from "@/serv
 export async function POST(request: Request) {
   try {
     const adapter = getPaymentAdapter(getPaymentProvider());
-    const event = await adapter.parseWebhookRequest(request);
+    const event = await adapter.parseWebhook(request);
     const order = await applyPaymentEvent(event);
 
     return Response.json({

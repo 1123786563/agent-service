@@ -12,6 +12,14 @@ vi.mock("@/server/orders/service", () => ({
   markServiceOrderPaymentFailed: vi.fn()
 }));
 
+vi.mock("@/server/payments/ledger", () => ({
+  recordPaymentEvent: vi.fn()
+}));
+
+vi.mock("@/server/audit/service", () => ({
+  recordAuditLog: vi.fn()
+}));
+
 import { POST as createPaymentSessionRoute } from "@/app/api/orders/[id]/pay/route";
 import { GET as completeDevPaymentRoute } from "@/app/api/payments/dev/complete/route";
 import { POST as paymentWebhookRoute } from "@/app/api/payments/webhook/route";
@@ -22,6 +30,7 @@ import {
   markServiceOrderPaymentCancelled,
   markServiceOrderPaymentFailed
 } from "@/server/orders/service";
+import { recordPaymentEvent } from "@/server/payments/ledger";
 
 describe("payment routes", () => {
   it("redirects a buyer into the dev checkout flow for a payable order", async () => {
@@ -34,7 +43,9 @@ describe("payment routes", () => {
       status: ServiceOrderStatus.PENDING_PAYMENT,
       paymentStatus: PaymentStatus.UNPAID,
       paymentProvider: "dev",
-      paymentReference: null
+      paymentReference: null,
+      priceCents: 2500,
+      currency: "USD"
     } as never);
 
     const response = await createPaymentSessionRoute(new Request("http://localhost/api/orders/order-1/pay", {
@@ -57,7 +68,9 @@ describe("payment routes", () => {
       status: ServiceOrderStatus.PENDING_PAYMENT,
       paymentStatus: PaymentStatus.UNPAID,
       paymentProvider: "dev",
-      paymentReference: null
+      paymentReference: null,
+      priceCents: 2500,
+      currency: "USD"
     } as never);
 
     const response = await createPaymentSessionRoute(new Request("http://localhost/api/orders/order-1/pay", {
@@ -73,6 +86,15 @@ describe("payment routes", () => {
   });
 
   it("applies a dev webhook success event through the shared payment path", async () => {
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      priceCents: 2500,
+      currency: "USD"
+    } as never);
+    vi.mocked(recordPaymentEvent).mockResolvedValue({
+      duplicate: false,
+      id: "ledger-1"
+    } as never);
     vi.mocked(markServiceOrderPaid).mockResolvedValue({
       id: "order-1",
       status: ServiceOrderStatus.IN_PROGRESS,
@@ -86,7 +108,11 @@ describe("payment routes", () => {
       },
       body: JSON.stringify({
         type: "payment.succeeded",
+        provider: "dev",
+        providerEventId: "evt_1",
         orderId: "order-1",
+        amountMinor: 2500,
+        currency: "USD",
         paymentReference: "devpay_123"
       })
     }));
@@ -106,6 +132,15 @@ describe("payment routes", () => {
   });
 
   it("applies a dev webhook failed event through the shared payment path", async () => {
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      priceCents: 2500,
+      currency: "USD"
+    } as never);
+    vi.mocked(recordPaymentEvent).mockResolvedValue({
+      duplicate: false,
+      id: "ledger-2"
+    } as never);
     vi.mocked(markServiceOrderPaymentFailed).mockResolvedValue({
       id: "order-1",
       status: ServiceOrderStatus.PENDING_PAYMENT,
@@ -119,7 +154,11 @@ describe("payment routes", () => {
       },
       body: JSON.stringify({
         type: "payment.failed",
+        provider: "dev",
+        providerEventId: "evt_2",
         orderId: "order-1",
+        amountMinor: 2500,
+        currency: "USD",
         paymentReference: "devpay_failed"
       })
     }));
@@ -139,6 +178,15 @@ describe("payment routes", () => {
   });
 
   it("applies a cancelled payment webhook and keeps the order pending", async () => {
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      priceCents: 2500,
+      currency: "USD"
+    } as never);
+    vi.mocked(recordPaymentEvent).mockResolvedValue({
+      duplicate: false,
+      id: "ledger-3"
+    } as never);
     vi.mocked(markServiceOrderPaymentCancelled).mockResolvedValue({
       id: "order-1",
       status: ServiceOrderStatus.PENDING_PAYMENT,
@@ -152,7 +200,11 @@ describe("payment routes", () => {
       },
       body: JSON.stringify({
         type: "payment.cancelled",
+        provider: "dev",
+        providerEventId: "evt_3",
         orderId: "order-1",
+        amountMinor: 2500,
+        currency: "USD",
         paymentReference: "devpay_cancelled"
       })
     }));
@@ -172,6 +224,15 @@ describe("payment routes", () => {
   });
 
   it("completes a dev payment and moves the order into progress", async () => {
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      priceCents: 2500,
+      currency: "USD"
+    } as never);
+    vi.mocked(recordPaymentEvent).mockResolvedValue({
+      duplicate: false,
+      id: "ledger-4"
+    } as never);
     vi.mocked(markServiceOrderPaid).mockResolvedValue({
       id: "order-1",
       status: ServiceOrderStatus.IN_PROGRESS,
@@ -197,6 +258,15 @@ describe("payment routes", () => {
   });
 
   it("simulates a failed dev payment and keeps the order pending", async () => {
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      priceCents: 2500,
+      currency: "USD"
+    } as never);
+    vi.mocked(recordPaymentEvent).mockResolvedValue({
+      duplicate: false,
+      id: "ledger-5"
+    } as never);
     vi.mocked(markServiceOrderPaymentFailed).mockResolvedValue({
       id: "order-1",
       status: ServiceOrderStatus.PENDING_PAYMENT,
@@ -218,6 +288,35 @@ describe("payment routes", () => {
       orderId: "order-1",
       orderStatus: ServiceOrderStatus.PENDING_PAYMENT,
       paymentStatus: PaymentStatus.FAILED
+    });
+  });
+
+  it("rejects webhook events with mismatched amounts", async () => {
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      priceCents: 2500,
+      currency: "USD"
+    } as never);
+
+    const response = await paymentWebhookRoute(new Request("http://localhost/api/payments/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "payment.succeeded",
+        provider: "dev",
+        providerEventId: "evt_bad",
+        orderId: "order-1",
+        amountMinor: 2600,
+        currency: "USD",
+        paymentReference: "devpay_bad"
+      })
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["Payment amount does not match service order"]
     });
   });
 });
