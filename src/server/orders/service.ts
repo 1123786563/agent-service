@@ -67,6 +67,11 @@ export type MarkServiceOrderPaymentFailedInput = {
   paymentReference?: string | null;
 };
 
+export type MarkServiceOrderPaymentCancelledInput = {
+  orderId: string;
+  paymentReference?: string | null;
+};
+
 export type MarkServiceOrderDisputedInput = {
   orderId: string;
 };
@@ -333,6 +338,38 @@ export async function markServiceOrderPaymentFailed(
   });
 }
 
+export async function markServiceOrderPaymentCancelled(
+  input: MarkServiceOrderPaymentCancelledInput,
+  deps: OrderServiceDeps = defaultDeps
+) {
+  const orderId = input.orderId.trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  const order = await deps.store.findUniqueById(orderId);
+  if (!order) {
+    throw new Error("Service order not found");
+  }
+
+  if (order.status !== ServiceOrderStatus.PENDING_PAYMENT) {
+    throw new Error("Cannot mark non-pending order payment as cancelled");
+  }
+
+  if (order.paymentStatus === PaymentStatus.CANCELLED) {
+    return order;
+  }
+
+  return deps.store.updateOrder({
+    where: { id: orderId },
+    data: {
+      paymentStatus: PaymentStatus.CANCELLED,
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentReference: input.paymentReference ?? order.paymentReference
+    }
+  });
+}
+
 export async function markServiceOrderDisputed(
   input: MarkServiceOrderDisputedInput,
   deps: OrderServiceDeps = defaultDeps
@@ -408,7 +445,7 @@ export async function cancelServiceOrder(
     throw new Error("Service order not found");
   }
 
-  const cancellablePaymentStatuses: PaymentStatus[] = [PaymentStatus.UNPAID, PaymentStatus.FAILED];
+  const cancellablePaymentStatuses: PaymentStatus[] = [PaymentStatus.UNPAID, PaymentStatus.FAILED, PaymentStatus.CANCELLED];
   if (order.status !== ServiceOrderStatus.PENDING_PAYMENT || !cancellablePaymentStatuses.includes(order.paymentStatus)) {
     throw new Error("Only unpaid pending orders can be cancelled");
   }

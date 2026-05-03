@@ -50,6 +50,9 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
 }
 
 enum StorageProviderKind {
@@ -205,6 +208,7 @@ model ServiceOrder {
   buyerUser        User?              @relation("BuyerOrders", fields: [buyerUserId], references: [id], onDelete: SetNull)
   provider         User               @relation("ProviderOrders", fields: [providerId], references: [id], onDelete: Cascade)
   deliveries       Delivery[]
+  paymentLedgerEntries PaymentLedger[]
 
   @@index([consultationId])
   @@index([providerId, createdAt])
@@ -212,6 +216,30 @@ model ServiceOrder {
   @@index([buyerUserId])
   @@index([status, paymentStatus])
   @@index([status, settledAt])
+}
+
+model PaymentLedger {
+  id                        String        @id @default(cuid())
+  orderId                   String
+  provider                  String
+  providerPaymentId         String?
+  providerCheckoutSessionId String?
+  providerEventId           String        @unique
+  amountMinor               Int
+  currency                  String
+  paymentStatus             PaymentStatus
+  failureReason             String?
+  idempotencyKey            String?
+  lastWebhookEventId        String?
+  lastWebhookReceivedAt     DateTime      @default(now())
+  rawEventDigest            String
+  rawEventStoredAt          DateTime?
+  createdAt                 DateTime      @default(now())
+
+  order                     ServiceOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@index([provider, paymentStatus, createdAt])
 }
 
 model Delivery {

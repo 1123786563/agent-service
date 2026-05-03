@@ -14,6 +14,11 @@ const devWebhookPayloadSchema = z.discriminatedUnion("type", [
     type: z.literal("payment.failed"),
     orderId: z.string().trim().min(1),
     paymentReference: z.string().trim().min(1).nullable().optional()
+  }),
+  z.object({
+    type: z.literal("payment.cancelled"),
+    orderId: z.string().trim().min(1),
+    paymentReference: z.string().trim().min(1).nullable().optional()
   })
 ]);
 
@@ -45,6 +50,17 @@ export function createDevPaymentFailedEvent(input: {
 }): PaymentEvent {
   return {
     type: "payment.failed",
+    orderId: z.string().trim().min(1).parse(input.orderId),
+    paymentReference: input.paymentReference?.trim() || createDevPaymentReference()
+  };
+}
+
+export function createDevPaymentCancelledEvent(input: {
+  orderId: string;
+  paymentReference?: string | null;
+}): PaymentEvent {
+  return {
+    type: "payment.cancelled",
     orderId: z.string().trim().min(1).parse(input.orderId),
     paymentReference: input.paymentReference?.trim() || createDevPaymentReference()
   };

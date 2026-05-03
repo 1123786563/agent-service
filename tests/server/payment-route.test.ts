@@ -8,6 +8,7 @@ vi.mock("@/server/auth/session", () => ({
 vi.mock("@/server/orders/service", () => ({
   getServiceOrderById: vi.fn(),
   markServiceOrderPaid: vi.fn(),
+  markServiceOrderPaymentCancelled: vi.fn(),
   markServiceOrderPaymentFailed: vi.fn()
 }));
 
@@ -15,7 +16,12 @@ import { POST as createPaymentSessionRoute } from "@/app/api/orders/[id]/pay/rou
 import { GET as completeDevPaymentRoute } from "@/app/api/payments/dev/complete/route";
 import { POST as paymentWebhookRoute } from "@/app/api/payments/webhook/route";
 import { getCurrentUser } from "@/server/auth/session";
-import { getServiceOrderById, markServiceOrderPaid, markServiceOrderPaymentFailed } from "@/server/orders/service";
+import {
+  getServiceOrderById,
+  markServiceOrderPaid,
+  markServiceOrderPaymentCancelled,
+  markServiceOrderPaymentFailed
+} from "@/server/orders/service";
 
 describe("payment routes", () => {
   it("redirects a buyer into the dev checkout flow for a payable order", async () => {
@@ -129,6 +135,39 @@ describe("payment routes", () => {
       orderId: "order-1",
       orderStatus: ServiceOrderStatus.PENDING_PAYMENT,
       paymentStatus: PaymentStatus.FAILED
+    });
+  });
+
+  it("applies a cancelled payment webhook and keeps the order pending", async () => {
+    vi.mocked(markServiceOrderPaymentCancelled).mockResolvedValue({
+      id: "order-1",
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.CANCELLED
+    } as never);
+
+    const response = await paymentWebhookRoute(new Request("http://localhost/api/payments/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "payment.cancelled",
+        orderId: "order-1",
+        paymentReference: "devpay_cancelled"
+      })
+    }));
+
+    expect(markServiceOrderPaymentCancelled).toHaveBeenCalledWith({
+      orderId: "order-1",
+      paymentReference: "devpay_cancelled"
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      type: "payment.cancelled",
+      orderId: "order-1",
+      orderStatus: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: PaymentStatus.CANCELLED
     });
   });
 

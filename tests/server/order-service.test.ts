@@ -5,6 +5,7 @@ import {
   listServiceOrdersForBuyerEmail,
   listServiceOrdersForProvider,
   markServiceOrderPaid,
+  markServiceOrderPaymentCancelled,
   markServiceOrderPaymentFailed,
   markServiceOrderDisputed,
   resolveDisputedServiceOrder,
@@ -225,6 +226,44 @@ describe("order service", () => {
     expect(order.paymentStatus).toBe(PaymentStatus.FAILED);
   });
 
+  it("marks a pending order payment as cancelled and keeps it pending", async () => {
+    const store = {
+      findConsultationById: vi.fn(),
+      consultationHasOrder: vi.fn(),
+      createOrderForConsultation: vi.fn(),
+      findManyForBuyerEmail: vi.fn(),
+      findManyForProvider: vi.fn(),
+      findUniqueById: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentStatus: PaymentStatus.UNPAID,
+        paymentReference: null
+      }),
+      updateOrder: vi.fn().mockResolvedValue({
+        id: "order-1",
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentStatus: PaymentStatus.CANCELLED
+      })
+    };
+
+    const order = await markServiceOrderPaymentCancelled({
+      orderId: "order-1",
+      paymentReference: "pay-ref-3"
+    }, {
+      store
+    });
+
+    expect(store.updateOrder).toHaveBeenCalledWith({
+      where: { id: "order-1" },
+      data: {
+        paymentStatus: PaymentStatus.CANCELLED,
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentReference: "pay-ref-3"
+      }
+    });
+    expect(order.paymentStatus).toBe(PaymentStatus.CANCELLED);
+  });
+
   it("marks an in-progress order as disputed", async () => {
     const store = {
       findConsultationById: vi.fn(),
@@ -313,5 +352,28 @@ describe("order service", () => {
       }
     });
     expect(order.status).toBe(ServiceOrderStatus.CANCELLED);
+  });
+
+  it("allows cancelling pending orders after a cancelled payment attempt", async () => {
+    const store = {
+      findConsultationById: vi.fn(),
+      consultationHasOrder: vi.fn(),
+      createOrderForConsultation: vi.fn(),
+      findManyForBuyerEmail: vi.fn(),
+      findManyForProvider: vi.fn(),
+      findUniqueById: vi.fn().mockResolvedValue({
+        id: "order-5",
+        status: ServiceOrderStatus.PENDING_PAYMENT,
+        paymentStatus: PaymentStatus.CANCELLED
+      }),
+      updateOrder: vi.fn().mockResolvedValue({
+        id: "order-5",
+        status: ServiceOrderStatus.CANCELLED
+      })
+    };
+
+    await expect(cancelServiceOrder({ orderId: "order-5" }, { store })).resolves.toMatchObject({
+      status: ServiceOrderStatus.CANCELLED
+    });
   });
 });
