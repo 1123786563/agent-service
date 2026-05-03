@@ -1,6 +1,7 @@
 import { AgentPackageStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { deleteStoredZip, readStoredZip, saveUploadedZip, type StoredZipFile } from "@/server/storage/local-storage";
+import { toStorageProviderKind } from "@/server/storage/provider";
 import { validateAgentZip, type ZipValidationResult } from "./zip-validator";
 
 type AgentPackageWithRelations = Prisma.AgentPackageGetPayload<{
@@ -310,7 +311,7 @@ export async function createAgentPackageFromZip(
             zipFileName: storage.fileName,
             zipSizeBytes: storage.sizeBytes,
             objectKey: storage.objectKey,
-            storageProvider: "LOCAL",
+            storageProvider: toStorageProviderKind(storage.storageProvider),
             bucket: storage.bucket,
             mimeType: storage.mimeType,
             contentDisposition: storage.contentDisposition,

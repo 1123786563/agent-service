@@ -111,7 +111,9 @@ export class LocalStorageProvider implements StorageProvider {
 
   async putObject(input: PutObjectInput) {
     const { dir, publicPath } = getScopeConfig(input.scope);
-    const fileName = buildStoredFileName(input.scope, input.originalFileName);
+    const fileName = input.objectKey
+      ? path.basename(input.objectKey)
+      : buildStoredFileName(input.scope, input.originalFileName);
     const filePath = path.join(dir, fileName);
 
     await fs.mkdir(dir, { recursive: true });

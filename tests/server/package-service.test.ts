@@ -227,6 +227,56 @@ describe("createAgentPackageFromZip", () => {
     expect(result.package.slug).toBe("research-assistant-2");
   });
 
+  it("persists provider-backed metadata when the active storage is s3-compatible", async () => {
+    const zipBuffer = await createAgentZip();
+    const validation = await validateAgentZip(zipBuffer);
+    const saveUploadedZip = vi.fn().mockResolvedValue({
+      url: "https://objects.example.com/agents/research-assistant-a1b2c3d4.zip",
+      fileName: "research-assistant-a1b2c3d4.zip",
+      sizeBytes: zipBuffer.byteLength,
+      objectKey: "agents/research-assistant-a1b2c3d4.zip",
+      storageProvider: "s3-compatible",
+      bucket: "bucket-1",
+      mimeType: "application/zip",
+      contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
+      checksum: "abc123"
+    });
+    const createPackage = vi.fn().mockResolvedValue({
+      id: "pkg-234",
+      owner: { id: "user-123", email: "user@example.com" },
+      skills: validation.metadata?.skills ?? [],
+      workflows: validation.metadata?.workflows ?? []
+    });
+
+    await createAgentPackageFromZip({
+      ownerId: "user-123",
+      buffer: zipBuffer,
+      fileName: "Research Assistant.zip"
+    }, {
+      validateZip: validateAgentZip,
+      storage: {
+        saveUploadedZip,
+        readStoredZip: vi.fn(),
+        deleteStoredZip: vi.fn()
+      },
+      packageStore: {
+        createPackage,
+        findSlugsWithPrefix: vi.fn().mockResolvedValue([]),
+        listPublishedPackages: vi.fn(),
+        findPublishedPackageBySlug: vi.fn(),
+        incrementDownloadCount: vi.fn()
+      }
+    });
+
+    expect(createPackage).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        storageProvider: "S3_COMPATIBLE",
+        bucket: "bucket-1",
+        objectKey: "agents/research-assistant-a1b2c3d4.zip"
+      })
+    }));
+  });
+
   it("deletes the stored zip when persistence fails after upload", async () => {
     const zipBuffer = await createAgentZip();
     const saveUploadedZip = vi.fn().mockResolvedValue({

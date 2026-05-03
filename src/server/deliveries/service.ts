@@ -7,6 +7,7 @@ import {
   saveDeliveryFile,
   type StoredDeliveryFile
 } from "@/server/storage/local-delivery-storage";
+import { toStorageProviderKind } from "@/server/storage/provider";
 
 const deliveryNoteSchema = z.string().trim().max(5000);
 
@@ -241,7 +242,7 @@ export async function createDeliveryForOrder(input: CreateDeliveryInput, deps: D
       fileName: stored.fileName,
       fileSizeBytes: stored.sizeBytes,
       objectKey: stored.objectKey,
-      storageProvider: "LOCAL",
+      storageProvider: toStorageProviderKind(stored.storageProvider),
       bucket: stored.bucket,
       mimeType: stored.mimeType,
       contentDisposition: stored.contentDisposition,

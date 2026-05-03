@@ -111,6 +111,34 @@ describe("delivery service", () => {
     expect(delivery.id).toBe("delivery-1");
   });
 
+  it("persists s3-compatible delivery metadata when the active storage is remote", async () => {
+    const { store, storage, deps } = createDeps();
+    vi.mocked(storage.save).mockResolvedValue({
+      url: "https://objects.example.com/deliveries/handoff.txt",
+      fileName: "handoff.txt",
+      sizeBytes: 14,
+      objectKey: "deliveries/handoff.txt",
+      storageProvider: "s3-compatible",
+      bucket: "bucket-1",
+      mimeType: "text/plain",
+      contentDisposition: 'attachment; filename="handoff.txt"',
+      checksum: "abc123"
+    });
+
+    await createDeliveryForOrder({
+      orderId: "order-1",
+      providerId: "creator-1",
+      buffer: Buffer.from("delivery-bytes"),
+      fileName: "handoff.txt"
+    }, deps);
+
+    expect(store.createDeliveryAndMarkDelivered).toHaveBeenCalledWith(expect.objectContaining({
+      storageProvider: "S3_COMPATIBLE",
+      bucket: "bucket-1",
+      objectKey: "deliveries/handoff.txt"
+    }));
+  });
+
   it("rejects delivery upload from a non-owner provider", async () => {
     const { storage, deps } = createDeps();
 

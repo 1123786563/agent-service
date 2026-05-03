@@ -1,4 +1,5 @@
-import { getLocalStorageProvider, sanitizeAgentStorageFileName } from "./local-provider";
+import { getStorageProvider } from "./factory";
+import { sanitizeAgentStorageFileName } from "./local-provider";
 import { readStreamToBuffer, type StoredObject } from "./provider";
 
 export type StoredZipFile = StoredObject;
@@ -8,7 +9,7 @@ export function sanitizeStorageFileName(fileName: string) {
 }
 
 export async function saveUploadedZip(buffer: Buffer, originalFileName: string): Promise<StoredZipFile> {
-  return getLocalStorageProvider().putObject({
+  return getStorageProvider().putObject({
     scope: "agents",
     buffer,
     originalFileName
@@ -23,7 +24,7 @@ export async function readStoredZip(fileName: string) {
     throw new Error("Invalid stored ZIP file name");
   }
 
-  const stream = await getLocalStorageProvider().getObjectStream({
+  const stream = await getStorageProvider().getObjectStream({
     objectKey: `agents/${resolvedName}`
   });
 
@@ -38,7 +39,7 @@ export async function deleteStoredZip(fileName: string) {
     throw new Error("Invalid stored ZIP file name");
   }
 
-  await getLocalStorageProvider().deleteObject({
+  await getStorageProvider().deleteObject({
     objectKey: `agents/${resolvedName}`
   });
 }

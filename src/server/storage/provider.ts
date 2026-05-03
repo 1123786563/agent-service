@@ -18,6 +18,7 @@ export type PutObjectInput = {
   scope: StorageScope;
   buffer: Buffer;
   originalFileName: string;
+  objectKey?: string;
 };
 
 export interface StorageProvider {
@@ -26,6 +27,10 @@ export interface StorageProvider {
   getObjectStream(input: { objectKey: string }): Promise<Readable>;
   deleteObject(input: { objectKey: string }): Promise<void>;
   buildObjectKey(input: { scope: StorageScope; fileName: string }): string;
+}
+
+export function toStorageProviderKind(value: StoredObject["storageProvider"]) {
+  return value === "local" ? "LOCAL" : "S3_COMPATIBLE";
 }
 
 export async function readStreamToBuffer(stream: Readable) {

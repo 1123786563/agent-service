@@ -1,4 +1,5 @@
-import { getLocalStorageProvider, sanitizeDeliveryStorageFileName } from "./local-provider";
+import { getStorageProvider } from "./factory";
+import { sanitizeDeliveryStorageFileName } from "./local-provider";
 import { readStreamToBuffer, type StoredObject } from "./provider";
 
 export type StoredDeliveryFile = StoredObject;
@@ -8,7 +9,7 @@ export function sanitizeDeliveryFileName(fileName: string) {
 }
 
 export async function saveDeliveryFile(buffer: Buffer, originalFileName: string): Promise<StoredDeliveryFile> {
-  return getLocalStorageProvider().putObject({
+  return getStorageProvider().putObject({
     scope: "deliveries",
     buffer,
     originalFileName
@@ -22,7 +23,7 @@ export async function readDeliveryFile(fileName: string) {
     throw new Error("Invalid stored delivery file name");
   }
 
-  const stream = await getLocalStorageProvider().getObjectStream({
+  const stream = await getStorageProvider().getObjectStream({
     objectKey: `deliveries/${resolvedName}`
   });
 
@@ -36,7 +37,7 @@ export async function deleteDeliveryFile(fileName: string) {
     throw new Error("Invalid stored delivery file name");
   }
 
-  await getLocalStorageProvider().deleteObject({
+  await getStorageProvider().deleteObject({
     objectKey: `deliveries/${resolvedName}`
   });
 }
