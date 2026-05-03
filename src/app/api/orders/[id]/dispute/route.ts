@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/server/auth/session";
-import { getServiceOrderById, markServiceOrderDisputed } from "@/server/orders/service";
+import { createDispute } from "@/server/disputes/service";
+import { getServiceOrderById } from "@/server/orders/service";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -34,8 +35,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       });
     }
 
-    await markServiceOrderDisputed({
-      orderId: id
+    await createDispute({
+      orderId: id,
+      openedByUserId: user.id,
+      reason: "User requested dispute from order screen"
     });
 
     return Response.redirect(new URL(user.role === "CREATOR" ? "/creator/orders" : "/account/orders", request.url), 303);

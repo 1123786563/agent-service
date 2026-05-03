@@ -1,9 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AgentPackageStatus, PaymentStatus, ServiceOrderStatus, UserRole, WhitelistStatus } from "@prisma/client";
+import {
+  AgentPackageStatus,
+  DisputeResolutionType,
+  PaymentStatus,
+  ServiceOrderStatus,
+  UserRole,
+  WhitelistStatus
+} from "@prisma/client";
 import { requireAdmin } from "@/server/auth/session";
 import { prisma } from "@/server/db";
+import { resolveLatestOpenDisputeForOrder } from "@/server/disputes/service";
 
 export async function activateCreatorWhitelist(formData: FormData) {
   await requireAdmin();
@@ -78,19 +86,27 @@ export async function resolveDisputedOrder(formData: FormData) {
     throw new Error("Order ID is required");
   }
 
-  if (
-    nextStatus !== ServiceOrderStatus.IN_PROGRESS &&
-    nextStatus !== ServiceOrderStatus.DELIVERED &&
-    nextStatus !== ServiceOrderStatus.CANCELLED
-  ) {
+  let resolutionType: DisputeResolutionType | null = null;
+
+  if (nextStatus === "IN_PROGRESS") {
+    resolutionType = DisputeResolutionType.RETURN_TO_PROGRESS;
+  }
+
+  if (nextStatus === "DELIVERED") {
+    resolutionType = DisputeResolutionType.RETURN_TO_DELIVERED;
+  }
+
+  if (nextStatus === "CANCELLED") {
+    resolutionType = DisputeResolutionType.REFUND_FULL;
+  }
+
+  if (!resolutionType) {
     throw new Error("Valid dispute resolution status is required");
   }
 
-  await prisma.serviceOrder.update({
-    where: { id: orderId },
-    data: {
-      status: nextStatus
-    }
+  await resolveLatestOpenDisputeForOrder({
+    orderId,
+    resolutionType
   });
 
   revalidatePath("/admin");

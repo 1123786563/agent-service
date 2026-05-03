@@ -8,6 +8,10 @@ vi.mock("@/server/auth/session", () => ({
   requireAdmin: vi.fn()
 }));
 
+vi.mock("@/server/disputes/service", () => ({
+  resolveLatestOpenDisputeForOrder: vi.fn()
+}));
+
 vi.mock("@/server/db", () => ({
   prisma: {
     user: {
@@ -24,6 +28,7 @@ vi.mock("@/server/db", () => ({
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/auth/session";
+import { resolveLatestOpenDisputeForOrder } from "@/server/disputes/service";
 import { prisma } from "@/server/db";
 import {
   activateCreatorWhitelist,
@@ -112,11 +117,9 @@ describe("admin actions", () => {
 
     await resolveDisputedOrder(formData);
 
-    expect(prisma.serviceOrder.update).toHaveBeenCalledWith({
-      where: { id: "order-2" },
-      data: {
-        status: "DELIVERED"
-      }
+    expect(resolveLatestOpenDisputeForOrder).toHaveBeenCalledWith({
+      orderId: "order-2",
+      resolutionType: "RETURN_TO_DELIVERED"
     });
     expect(revalidatePath).toHaveBeenCalledWith("/admin");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/analytics");

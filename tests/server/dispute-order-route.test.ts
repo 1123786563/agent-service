@@ -6,13 +6,17 @@ vi.mock("@/server/auth/session", () => ({
 }));
 
 vi.mock("@/server/orders/service", () => ({
-  getServiceOrderById: vi.fn(),
-  markServiceOrderDisputed: vi.fn()
+  getServiceOrderById: vi.fn()
+}));
+
+vi.mock("@/server/disputes/service", () => ({
+  createDispute: vi.fn()
 }));
 
 import { POST } from "@/app/api/orders/[id]/dispute/route";
 import { getCurrentUser } from "@/server/auth/session";
-import { getServiceOrderById, markServiceOrderDisputed } from "@/server/orders/service";
+import { createDispute } from "@/server/disputes/service";
+import { getServiceOrderById } from "@/server/orders/service";
 
 describe("dispute order route", () => {
   it("redirects anonymous users to login", async () => {
@@ -41,9 +45,9 @@ describe("dispute order route", () => {
       status: ServiceOrderStatus.DELIVERED,
       paymentStatus: PaymentStatus.PAID
     } as never);
-    vi.mocked(markServiceOrderDisputed).mockResolvedValue({
+    vi.mocked(createDispute).mockResolvedValue({
       id: "order-1",
-      status: ServiceOrderStatus.DISPUTED
+      status: "OPEN"
     } as never);
 
     const response = await POST(new Request("http://localhost/api/orders/order-1/dispute", {
@@ -52,8 +56,10 @@ describe("dispute order route", () => {
       params: Promise.resolve({ id: "order-1" })
     });
 
-    expect(markServiceOrderDisputed).toHaveBeenCalledWith({
-      orderId: "order-1"
+    expect(createDispute).toHaveBeenCalledWith({
+      orderId: "order-1",
+      openedByUserId: "buyer-1",
+      reason: "User requested dispute from order screen"
     });
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("http://localhost/account/orders");
