@@ -128,7 +128,7 @@ export async function createSession(userId: string) {
   }
 }
 
-export async function getCurrentUser() {
+export async function getCurrentSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) {
@@ -144,7 +144,12 @@ export async function getCurrentUser() {
     return null;
   }
 
-  return session.user;
+  return session;
+}
+
+export async function getCurrentUser() {
+  const session = await getCurrentSession();
+  return session?.user ?? null;
 }
 
 export async function requireCreator() {
