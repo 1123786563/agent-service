@@ -80,6 +80,19 @@ enum RefundStatus {
   FAILED
 }
 
+enum SettlementLineStatus {
+  PENDING
+  LOCKED
+  SETTLED
+}
+
+enum SettlementBatchStatus {
+  DRAFT
+  SUBMITTED
+  PAID_OUT
+  FAILED
+}
+
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -99,6 +112,8 @@ model User {
   openedDisputes   Dispute[]       @relation("OpenedDisputes")
   disputeEvidence  DisputeEvidence[] @relation("DisputeEvidenceSubmitters")
   requestedRefunds Refund[]        @relation("RequestedRefunds")
+  settlementLines  SettlementLine[] @relation("ProviderSettlementLines")
+  settlementBatches SettlementBatch[] @relation("ProviderSettlementBatches")
 }
 
 model MagicLinkToken {
@@ -235,6 +250,7 @@ model ServiceOrder {
   paymentLedgerEntries PaymentLedger[]
   disputes         Dispute[]
   refunds          Refund[]
+  settlementLine   SettlementLine?
 
   @@index([consultationId])
   @@index([providerId, createdAt])
@@ -374,4 +390,52 @@ model Refund {
 
   @@index([orderId, createdAt])
   @@index([status, createdAt])
+}
+
+model SettlementLine {
+  id                     String               @id @default(cuid())
+  orderId                String               @unique
+  providerId             String
+  grossAmountMinor       Int
+  feeRate                Decimal              @default(0)
+  feePolicySnapshot      Json?
+  platformFeeAmountMinor Int
+  netAmountMinor         Int
+  refundDeductionAmount  Int                  @default(0)
+  adjustmentAmount       Int                  @default(0)
+  currency               String
+  status                 SettlementLineStatus @default(PENDING)
+  eligibleAt             DateTime
+  holdUntil              DateTime?
+  lockedAt               DateTime?
+  settledAt              DateTime?
+  settlementBatchId      String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  order                  ServiceOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider               User                 @relation("ProviderSettlementLines", fields: [providerId], references: [id], onDelete: Cascade)
+  settlementBatch        SettlementBatch?     @relation(fields: [settlementBatchId], references: [id], onDelete: SetNull)
+
+  @@index([providerId, status, eligibleAt])
+  @@index([settlementBatchId])
+}
+
+model SettlementBatch {
+  id               String                @id @default(cuid())
+  providerId       String
+  totalAmountMinor Int
+  currency         String
+  status           SettlementBatchStatus @default(DRAFT)
+  payoutReference  String?
+  submittedAt      DateTime?
+  paidOutAt        DateTime?
+  lineSnapshot     Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  provider         User                  @relation("ProviderSettlementBatches", fields: [providerId], references: [id], onDelete: Cascade)
+  settlementLines  SettlementLine[]
+
+  @@index([providerId, status, createdAt])
 }
