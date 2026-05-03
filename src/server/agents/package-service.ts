@@ -309,6 +309,12 @@ export async function createAgentPackageFromZip(
             zipFileUrl: storage.url,
             zipFileName: storage.fileName,
             zipSizeBytes: storage.sizeBytes,
+            objectKey: storage.objectKey,
+            storageProvider: "LOCAL",
+            bucket: storage.bucket,
+            mimeType: storage.mimeType,
+            contentDisposition: storage.contentDisposition,
+            checksum: storage.checksum,
             downloadCount: 0,
             validationResult: {
               errors: validation.errors,

@@ -52,6 +52,11 @@ enum PaymentStatus {
   FAILED
 }
 
+enum StorageProviderKind {
+  LOCAL
+  S3_COMPATIBLE
+}
+
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -106,6 +111,13 @@ model AgentPackage {
   zipFileUrl       String
   zipFileName      String
   zipSizeBytes     Int
+  objectKey        String?
+  storageProvider  StorageProviderKind? @default(LOCAL)
+  bucket           String?
+  mimeType         String?
+  contentDisposition String?
+  checksum         String?
+  deletedAt        DateTime?
   coverUrl         String?
   downloadCount    Int                @default(0)
   status           AgentPackageStatus @default(DRAFT)
@@ -209,6 +221,13 @@ model Delivery {
   fileUrl       String
   fileName      String
   fileSizeBytes Int
+  objectKey     String?
+  storageProvider StorageProviderKind? @default(LOCAL)
+  bucket        String?
+  mimeType      String?
+  contentDisposition String?
+  checksum      String?
+  deletedAt     DateTime?
   note          String?
   submittedAt   DateTime     @default(now())
   acceptedAt    DateTime?
@@ -219,4 +238,21 @@ model Delivery {
 
   @@index([serviceOrderId, submittedAt])
   @@index([providerId, submittedAt])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  actorId        String?
+  actorRole      String
+  action         String
+  targetType     String
+  targetId       String
+  beforeSnapshot Json?
+  afterSnapshot  Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  @@index([targetType, targetId, createdAt])
+  @@index([actorId, createdAt])
 }

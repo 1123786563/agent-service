@@ -30,6 +30,12 @@ describe("local delivery storage", () => {
     expect(stored.fileName).toMatch(/^final-delivery-[a-f0-9]{16}\.pdf$/);
     expect(stored.url).toBe(`/api/deliveries/${stored.fileName}`);
     expect(stored.sizeBytes).toBe(buffer.byteLength);
+    expect(stored.objectKey).toBe(`deliveries/${stored.fileName}`);
+    expect(stored.storageProvider).toBe("local");
+    expect(stored.bucket).toBeNull();
+    expect(stored.mimeType).toBe("application/pdf");
+    expect(stored.contentDisposition).toBe(`attachment; filename="${stored.fileName}"`);
+    expect(stored.checksum).toMatch(/^[a-f0-9]{64}$/);
     await expect(readDeliveryFile(stored.fileName)).resolves.toEqual(buffer);
   });
 

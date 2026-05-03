@@ -33,6 +33,12 @@ type DeliveryStore = {
     fileUrl: string;
     fileName: string;
     fileSizeBytes: number;
+    objectKey: string;
+    storageProvider: "LOCAL" | "S3_COMPATIBLE";
+    bucket: string | null;
+    mimeType: string;
+    contentDisposition: string;
+    checksum: string;
     note: string | null;
   }): Promise<DeliveryWithRelations>;
   findManyForOrder(orderId: string): Promise<DeliveryWithRelations[]>;
@@ -96,6 +102,12 @@ const defaultDeps: DeliveryServiceDeps = {
             fileUrl: data.fileUrl,
             fileName: data.fileName,
             fileSizeBytes: data.fileSizeBytes,
+            objectKey: data.objectKey,
+            storageProvider: data.storageProvider,
+            bucket: data.bucket,
+            mimeType: data.mimeType,
+            contentDisposition: data.contentDisposition,
+            checksum: data.checksum,
             note: data.note
           },
           include: {
@@ -228,6 +240,12 @@ export async function createDeliveryForOrder(input: CreateDeliveryInput, deps: D
       fileUrl: stored.url,
       fileName: stored.fileName,
       fileSizeBytes: stored.sizeBytes,
+      objectKey: stored.objectKey,
+      storageProvider: "LOCAL",
+      bucket: stored.bucket,
+      mimeType: stored.mimeType,
+      contentDisposition: stored.contentDisposition,
+      checksum: stored.checksum,
       note
     });
   } catch (error) {

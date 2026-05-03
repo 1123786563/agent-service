@@ -114,7 +114,13 @@ describe("createAgentPackageFromZip", () => {
     const saveUploadedZip = vi.fn().mockResolvedValue({
       url: "/api/uploads/research-assistant-a1b2c3d4.zip",
       fileName: "research-assistant-a1b2c3d4.zip",
-      sizeBytes: zipBuffer.byteLength
+      sizeBytes: zipBuffer.byteLength,
+      objectKey: "agents/research-assistant-a1b2c3d4.zip",
+      storageProvider: "local",
+      bucket: null,
+      mimeType: "application/zip",
+      contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
+      checksum: "abc123"
     });
     const findSlugsWithPrefix = vi.fn().mockResolvedValue(["research-assistant"]);
     const createdPackage = {
@@ -129,6 +135,12 @@ describe("createAgentPackageFromZip", () => {
       zipFileUrl: "/api/uploads/research-assistant-a1b2c3d4.zip",
       zipFileName: "research-assistant-a1b2c3d4.zip",
       zipSizeBytes: zipBuffer.byteLength,
+      objectKey: "agents/research-assistant-a1b2c3d4.zip",
+      storageProvider: "LOCAL",
+      bucket: null,
+      mimeType: "application/zip",
+      contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
+      checksum: "abc123",
       coverUrl: null,
       downloadCount: 0,
       status: AgentPackageStatus.PUBLISHED,
@@ -185,6 +197,12 @@ describe("createAgentPackageFromZip", () => {
         zipFileUrl: "/api/uploads/research-assistant-a1b2c3d4.zip",
         zipFileName: "research-assistant-a1b2c3d4.zip",
         zipSizeBytes: zipBuffer.byteLength,
+        objectKey: "agents/research-assistant-a1b2c3d4.zip",
+        storageProvider: "LOCAL",
+        bucket: null,
+        mimeType: "application/zip",
+        contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
+        checksum: "abc123",
         downloadCount: 0,
         validationResult: {
           errors: [],
@@ -214,7 +232,13 @@ describe("createAgentPackageFromZip", () => {
     const saveUploadedZip = vi.fn().mockResolvedValue({
       url: "/api/uploads/research-assistant-a1b2c3d4.zip",
       fileName: "research-assistant-a1b2c3d4.zip",
-      sizeBytes: zipBuffer.byteLength
+      sizeBytes: zipBuffer.byteLength,
+      objectKey: "agents/research-assistant-a1b2c3d4.zip",
+      storageProvider: "local",
+      bucket: null,
+      mimeType: "application/zip",
+      contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
+      checksum: "abc123"
     });
     const deleteStoredZip = vi.fn().mockResolvedValue(undefined);
     const createPackage = vi.fn().mockRejectedValue(new Error("database offline"));
@@ -249,7 +273,13 @@ describe("createAgentPackageFromZip", () => {
     const saveUploadedZip = vi.fn().mockResolvedValue({
       url: "/api/uploads/research-assistant-a1b2c3d4.zip",
       fileName: "research-assistant-a1b2c3d4.zip",
-      sizeBytes: zipBuffer.byteLength
+      sizeBytes: zipBuffer.byteLength,
+      objectKey: "agents/research-assistant-a1b2c3d4.zip",
+      storageProvider: "local",
+      bucket: null,
+      mimeType: "application/zip",
+      contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
+      checksum: "abc123"
     });
     const createPackage = vi
       .fn()

@@ -59,7 +59,13 @@ function createDeps(overrides: {
     save: vi.fn().mockResolvedValue({
       url: "/api/deliveries/handoff.txt",
       fileName: "handoff.txt",
-      sizeBytes: 14
+      sizeBytes: 14,
+      objectKey: "deliveries/handoff.txt",
+      storageProvider: "local",
+      bucket: null,
+      mimeType: "text/plain",
+      contentDisposition: 'attachment; filename="handoff.txt"',
+      checksum: "abc123"
     }),
     read: vi.fn().mockResolvedValue(Buffer.from("delivery-bytes")),
     delete: vi.fn().mockResolvedValue(undefined)
@@ -94,6 +100,12 @@ describe("delivery service", () => {
       fileUrl: "/api/deliveries/handoff.txt",
       fileName: "handoff.txt",
       fileSizeBytes: 14,
+      objectKey: "deliveries/handoff.txt",
+      storageProvider: "LOCAL",
+      bucket: null,
+      mimeType: "text/plain",
+      contentDisposition: 'attachment; filename="handoff.txt"',
+      checksum: "abc123",
       note: "Final setup notes"
     });
     expect(delivery.id).toBe("delivery-1");

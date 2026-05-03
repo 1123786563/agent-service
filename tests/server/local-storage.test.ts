@@ -25,6 +25,12 @@ describe("local storage", () => {
     expect(stored.fileName).toMatch(/^my-agent-package-[a-f0-9]{16}\.zip$/);
     expect(stored.url).toBe(`/api/uploads/${stored.fileName}`);
     expect(stored.sizeBytes).toBe(buffer.byteLength);
+    expect(stored.objectKey).toBe(`agents/${stored.fileName}`);
+    expect(stored.storageProvider).toBe("local");
+    expect(stored.bucket).toBeNull();
+    expect(stored.mimeType).toBe("application/zip");
+    expect(stored.contentDisposition).toBe(`attachment; filename="${stored.fileName}"`);
+    expect(stored.checksum).toMatch(/^[a-f0-9]{64}$/);
 
     await expect(readStoredZip(stored.fileName)).resolves.toEqual(buffer);
   });

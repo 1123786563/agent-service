@@ -9,6 +9,12 @@ export type StoredZipFile = {
   url: string;
   fileName: string;
   sizeBytes: number;
+  objectKey: string;
+  storageProvider: "local";
+  bucket: null;
+  mimeType: string;
+  contentDisposition: string;
+  checksum: string;
 };
 
 function getUploadDir() {
@@ -18,6 +24,10 @@ function getUploadDir() {
 function getPublicUploadPath() {
   const publicPath = process.env.UPLOADS_PUBLIC_PATH ?? DEFAULT_PUBLIC_PATH;
   return publicPath.endsWith("/") ? publicPath.slice(0, -1) : publicPath;
+}
+
+function buildAgentObjectKey(fileName: string) {
+  return `agents/${fileName}`;
 }
 
 export function sanitizeStorageFileName(fileName: string) {
@@ -46,7 +56,13 @@ export async function saveUploadedZip(buffer: Buffer, originalFileName: string):
   return {
     url: `${getPublicUploadPath()}/${encodeURIComponent(fileName)}`,
     fileName,
-    sizeBytes: buffer.byteLength
+    sizeBytes: buffer.byteLength,
+    objectKey: buildAgentObjectKey(fileName),
+    storageProvider: "local",
+    bucket: null,
+    mimeType: "application/zip",
+    contentDisposition: `attachment; filename="${fileName}"`,
+    checksum: crypto.createHash("sha256").update(buffer).digest("hex")
   };
 }
 

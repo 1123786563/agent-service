@@ -9,6 +9,12 @@ export type StoredDeliveryFile = {
   url: string;
   fileName: string;
   sizeBytes: number;
+  objectKey: string;
+  storageProvider: "local";
+  bucket: null;
+  mimeType: string;
+  contentDisposition: string;
+  checksum: string;
 };
 
 function getDeliveryUploadDir() {
@@ -18,6 +24,28 @@ function getDeliveryUploadDir() {
 function getDeliveryPublicPath() {
   const publicPath = process.env.DELIVERIES_PUBLIC_PATH ?? DEFAULT_DELIVERY_PUBLIC_PATH;
   return publicPath.endsWith("/") ? publicPath.slice(0, -1) : publicPath;
+}
+
+function buildDeliveryObjectKey(fileName: string) {
+  return `deliveries/${fileName}`;
+}
+
+function inferDeliveryMimeType(fileName: string) {
+  const extension = path.extname(fileName).toLowerCase();
+  switch (extension) {
+    case ".pdf":
+      return "application/pdf";
+    case ".json":
+      return "application/json";
+    case ".md":
+      return "text/markdown";
+    case ".txt":
+      return "text/plain";
+    case ".zip":
+      return "application/zip";
+    default:
+      return "application/octet-stream";
+  }
 }
 
 export function sanitizeDeliveryFileName(fileName: string) {
@@ -48,7 +76,13 @@ export async function saveDeliveryFile(buffer: Buffer, originalFileName: string)
   return {
     url: `${getDeliveryPublicPath()}/${encodeURIComponent(fileName)}`,
     fileName,
-    sizeBytes: buffer.byteLength
+    sizeBytes: buffer.byteLength,
+    objectKey: buildDeliveryObjectKey(fileName),
+    storageProvider: "local",
+    bucket: null,
+    mimeType: inferDeliveryMimeType(fileName),
+    contentDisposition: `attachment; filename="${fileName}"`,
+    checksum: crypto.createHash("sha256").update(buffer).digest("hex")
   };
 }
 
