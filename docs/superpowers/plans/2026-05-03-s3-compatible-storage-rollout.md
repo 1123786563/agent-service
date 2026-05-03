@@ -1,6 +1,6 @@
 # S3-Compatible Storage Rollout Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace the current local-file default with a production-ready S3-compatible storage path for agent ZIPs and delivery assets, while preserving existing downloads, metadata integrity, and rollback safety.
 
@@ -92,7 +92,7 @@ Add and document:
 - Modify: `src/server/storage/provider.ts`
 - Test: `tests/server/storage-factory.test.ts`
 
-- [ ] **Step 1: Write failing tests for provider selection**
+- [x] **Step 1: Write failing tests for provider selection**
 
 ```ts
 it("returns local storage when STORAGE_PROVIDER is unset", () => {
@@ -105,12 +105,12 @@ it("returns s3-compatible storage when configured", () => {
 });
 ```
 
-- [ ] **Step 2: Run targeted tests**
+- [x] **Step 2: Run targeted tests**
 
 Run: `npm run test -- tests/server/storage-factory.test.ts`
 Expected: FAIL because there is no runtime selector yet.
 
-- [ ] **Step 3: Implement provider factory and config validation**
+- [x] **Step 3: Implement provider factory and config validation**
 
 Requirements:
 
@@ -118,12 +118,12 @@ Requirements:
 - reject unsupported values
 - fail fast when `s3-compatible` is selected but required env vars are missing
 
-- [ ] **Step 4: Re-run factory tests**
+- [x] **Step 4: Re-run factory tests**
 
 Run: `npm run test -- tests/server/storage-factory.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/server/storage/factory.ts src/server/storage/provider.ts tests/server/storage-factory.test.ts
@@ -136,7 +136,7 @@ git commit -m "feat: add storage provider selection"
 - Modify: `src/server/storage/s3-provider.ts`
 - Test: `tests/server/s3-provider.test.ts`
 
-- [ ] **Step 1: Write failing tests for put/get/delete behavior**
+- [x] **Step 1: Write failing tests for put/get/delete behavior**
 
 ```ts
 it("uploads objects with the expected key and metadata", async () => {
@@ -152,12 +152,12 @@ it("uploads objects with the expected key and metadata", async () => {
 });
 ```
 
-- [ ] **Step 2: Run S3 provider tests**
+- [x] **Step 2: Run S3 provider tests**
 
 Run: `npm run test -- tests/server/s3-provider.test.ts`
 Expected: FAIL because the provider is still a stub.
 
-- [ ] **Step 3: Implement S3-compatible put/get/delete**
+- [x] **Step 3: Implement S3-compatible put/get/delete**
 
 Requirements:
 
@@ -167,12 +167,12 @@ Requirements:
 - return a stable `contentDisposition`
 - read objects back as `Readable`
 
-- [ ] **Step 4: Re-run provider tests**
+- [x] **Step 4: Re-run provider tests**
 
 Run: `npm run test -- tests/server/s3-provider.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/server/storage/s3-provider.ts tests/server/s3-provider.test.ts
@@ -189,7 +189,7 @@ git commit -m "feat: implement s3-compatible storage provider"
 - Test: `tests/server/package-service.test.ts`
 - Test: `tests/server/delivery-service.test.ts`
 
-- [ ] **Step 1: Write failing integration-style tests for selected provider usage**
+- [x] **Step 1: Write failing integration-style tests for selected provider usage**
 
 ```ts
 it("persists uploaded package metadata from the active provider", async () => {
@@ -199,12 +199,12 @@ it("persists uploaded package metadata from the active provider", async () => {
 });
 ```
 
-- [ ] **Step 2: Run targeted service tests**
+- [x] **Step 2: Run targeted service tests**
 
 Run: `npm run test -- tests/server/package-service.test.ts tests/server/delivery-service.test.ts`
 Expected: FAIL because persistence still assumes local storage in parts of the path.
 
-- [ ] **Step 3: Refactor service code to use the provider factory everywhere**
+- [x] **Step 3: Refactor service code to use the provider factory everywhere**
 
 Requirements:
 
@@ -212,12 +212,12 @@ Requirements:
 - download routes must still work using stored `objectKey`
 - no route should assume local file paths directly
 
-- [ ] **Step 4: Re-run service tests**
+- [x] **Step 4: Re-run service tests**
 
 Run: `npm run test -- tests/server/package-service.test.ts tests/server/delivery-service.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/server/storage/local-storage.ts src/server/storage/local-delivery-storage.ts src/server/agents/package-service.ts src/server/deliveries/service.ts tests/server/package-service.test.ts tests/server/delivery-service.test.ts
@@ -231,7 +231,7 @@ git commit -m "feat: route asset persistence through selected storage provider"
 - Modify: `docs/phase-6-operator-guide.md`
 - Test: `tests/server/local-storage.test.ts` or a new migration utility test if practical
 
-- [ ] **Step 1: Design migration invariants**
+- [x] **Step 1: Design migration invariants**
 
 Migration rules:
 
@@ -240,7 +240,7 @@ Migration rules:
 - update `storageProvider`, `bucket`, and URL metadata after successful copy
 - never delete local source files during the first rollout pass
 
-- [ ] **Step 2: Implement the migration script**
+- [x] **Step 2: Implement the migration script**
 
 Requirements:
 
@@ -249,7 +249,7 @@ Requirements:
 - log copied row counts and skipped rows
 - continue on single-row failure and emit a summary
 
-- [ ] **Step 3: Run a dry-run locally**
+- [x] **Step 3: Run a dry-run locally**
 
 Run example:
 
@@ -259,7 +259,7 @@ npx tsx scripts/migrate-assets-to-object-storage.ts --scope=all --dry-run
 
 Expected: script enumerates eligible assets without mutating storage.
 
-- [ ] **Step 4: Document the cutover sequence**
+- [x] **Step 4: Document the cutover sequence**
 
 Include:
 
@@ -269,7 +269,7 @@ Include:
 4. switch `STORAGE_PROVIDER=s3-compatible`
 5. verify ZIP and delivery downloads
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/migrate-assets-to-object-storage.ts docs/phase-6-operator-guide.md
@@ -283,7 +283,7 @@ git commit -m "feat: add asset migration utility for object storage cutover"
 - Test: `tests/e2e/storage-rollout.spec.ts` or targeted smoke additions
 - Modify: `playwright.config.ts` only if new env setup is required
 
-- [ ] **Step 1: Add smoke coverage for provider-backed downloads**
+- [x] **Step 1: Add smoke coverage for provider-backed downloads**
 
 Coverage goals:
 
@@ -291,7 +291,7 @@ Coverage goals:
 - buyer delivery download still enforces auth
 - creator upload still succeeds with selected provider metadata
 
-- [ ] **Step 2: Run targeted e2e or integration verification**
+- [x] **Step 2: Run targeted e2e or integration verification**
 
 Run:
 
@@ -307,7 +307,7 @@ If an S3-compatible test environment is available, also run:
 npm run test:e2e
 ```
 
-- [ ] **Step 3: Finalize operator guide**
+- [x] **Step 3: Finalize operator guide**
 
 Document:
 
@@ -316,7 +316,7 @@ Document:
 - dry-run vs live migration
 - rollback to local storage
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/phase-6-operator-guide.md tests/e2e/storage-rollout.spec.ts playwright.config.ts

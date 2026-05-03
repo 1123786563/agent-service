@@ -72,6 +72,19 @@ After cutover, verify:
    - agent ZIPs
    - delivery files
 
+If an environment is already running with:
+
+- `STORAGE_PROVIDER=s3-compatible`
+- valid S3-compatible credentials
+
+you can also run the rollout smoke suite:
+
+```bash
+npm run test:e2e
+```
+
+`tests/e2e/storage-rollout.spec.ts` is environment-gated. It skips automatically when the runtime is not configured for S3-compatible storage.
+
 ## Rollback
 
 If uploads or downloads fail after cutover:
