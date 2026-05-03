@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ConsultationStatus, PaymentStatus, ServiceOrderStatus, WhitelistStatus } from "@prisma/client";
+import { ConsultationStatus, PaymentStatus, ServiceOrderStatus, SettlementLineStatus, WhitelistStatus } from "@prisma/client";
 import { PackageStatusPill } from "@/components/package-status-pill";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -30,7 +30,7 @@ export default async function CreatorPage() {
       createdAt: "desc"
     }
   });
-  const [consultationCount, activeOrderCount, unsettledOrders] = await Promise.all([
+  const [consultationCount, activeOrderCount, completedPaidOrders] = await Promise.all([
     prisma.consultation.count({
       where: {
         providerId: user.id,
@@ -51,16 +51,21 @@ export default async function CreatorPage() {
       where: {
         providerId: user.id,
         status: ServiceOrderStatus.COMPLETED,
-        paymentStatus: PaymentStatus.PAID,
-        settledAt: null
+        paymentStatus: PaymentStatus.PAID
       },
-      select: {
-        priceCents: true
+      include: {
+        settlementLine: true
       }
     })
   ]);
   const totalDownloads = packages.reduce((sum, agentPackage) => sum + agentPackage.downloadCount, 0);
-  const unsettledRevenueCents = unsettledOrders.reduce((sum, order) => sum + order.priceCents, 0);
+  const unsettledRevenueCents = completedPaidOrders.reduce((sum, order) => {
+    if (order.settlementLine?.status === SettlementLineStatus.SETTLED || order.settledAt) {
+      return sum;
+    }
+
+    return sum + order.priceCents;
+  }, 0);
 
   return (
     <section>

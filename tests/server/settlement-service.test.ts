@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prismaMock = vi.hoisted(() => ({
   serviceOrder: {
-    findUnique: vi.fn()
+    findUnique: vi.fn(),
+    updateMany: vi.fn()
   },
   settlementLine: {
     upsert: vi.fn(),
@@ -11,7 +12,9 @@ const prismaMock = vi.hoisted(() => ({
     updateMany: vi.fn()
   },
   settlementBatch: {
-    create: vi.fn()
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn()
   },
   $transaction: vi.fn()
 }));
@@ -20,7 +23,7 @@ vi.mock("@/server/db", () => ({
   prisma: prismaMock
 }));
 
-import { buildSettlementLine, submitSettlementBatch } from "@/server/settlements/service";
+import { buildSettlementLine, markSettlementBatchPaidOut, submitSettlementBatch } from "@/server/settlements/service";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -79,5 +82,44 @@ describe("settlement service", () => {
 
     expect(batch.status).toBe(SettlementBatchStatus.SUBMITTED);
     expect(batch.lineSnapshot).toEqual([{ id: "line-1" }]);
+  });
+
+  it("marks submitted batches as paid out and projects settlement fields to orders", async () => {
+    prismaMock.settlementBatch.findUnique.mockResolvedValue({
+      id: "batch-1",
+      status: SettlementBatchStatus.SUBMITTED,
+      payoutReference: null,
+      settlementLines: [
+        {
+          id: "line-1",
+          orderId: "order-1"
+        }
+      ]
+    });
+    prismaMock.$transaction.mockImplementation(async (callback) =>
+      callback({
+        settlementBatch: {
+          update: vi.fn().mockResolvedValue({
+            id: "batch-1",
+            status: SettlementBatchStatus.PAID_OUT,
+            payoutReference: "bank-transfer-2026-05-01"
+          })
+        },
+        settlementLine: {
+          updateMany: vi.fn().mockResolvedValue({ count: 1 })
+        },
+        serviceOrder: {
+          updateMany: vi.fn().mockResolvedValue({ count: 1 })
+        }
+      })
+    );
+
+    const batch = await markSettlementBatchPaidOut({
+      batchId: "batch-1",
+      payoutReference: "bank-transfer-2026-05-01"
+    });
+
+    expect(batch.status).toBe(SettlementBatchStatus.PAID_OUT);
+    expect(batch.payoutReference).toBe("bank-transfer-2026-05-01");
   });
 });

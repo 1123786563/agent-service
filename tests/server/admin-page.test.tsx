@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { UserRole } from "@prisma/client";
+import { SettlementBatchStatus, SettlementLineStatus, UserRole } from "@prisma/client";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((location: string) => {
@@ -26,6 +26,9 @@ vi.mock("@/server/db", () => ({
     serviceOrder: {
       findMany: vi.fn(),
       count: vi.fn()
+    },
+    settlementBatch: {
+      findMany: vi.fn()
     },
     user: {
       findMany: vi.fn()
@@ -109,82 +112,103 @@ describe("admin pages", () => {
       }
     ] as never);
     vi.mocked(prisma.consultation.count).mockResolvedValue(1 as never);
-    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
-      {
-        id: "order-1",
-        title: "Deployment package",
-        buyerEmail: "buyer@example.com",
-        status: "DELIVERED",
-        paymentStatus: "PAID",
-        provider: {
-          email: "creator@example.com"
-        },
-        deliveries: [
-          {
-            fileName: "handoff.txt",
-            submittedAt: new Date("2026-04-30T08:00:00.000Z"),
-            acceptedAt: null
+    vi.mocked(prisma.serviceOrder.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: "order-1",
+          title: "Deployment package",
+          buyerEmail: "buyer@example.com",
+          status: "DELIVERED",
+          paymentStatus: "PAID",
+          provider: {
+            email: "creator@example.com"
+          },
+          deliveries: [
+            {
+              fileName: "handoff.txt",
+              submittedAt: new Date("2026-04-30T08:00:00.000Z"),
+              acceptedAt: null
+            }
+          ],
+          consultation: {
+            agentPackage: {
+              name: "Research Assistant"
+            }
           }
-        ],
-        consultation: {
-          agentPackage: {
-            name: "Research Assistant"
+        },
+        {
+          id: "order-2",
+          title: "Recovery package",
+          buyerEmail: "retry@example.com",
+          status: "PENDING_PAYMENT",
+          paymentStatus: "FAILED",
+          paymentReference: "devpay_failed",
+          provider: {
+            email: "ops@example.com"
+          },
+          deliveries: [],
+          consultation: {
+            agentPackage: {
+              name: "Ops Copilot"
+            }
+          }
+        },
+        {
+          id: "order-3",
+          title: "Disputed package",
+          buyerEmail: "dispute@example.com",
+          status: "DISPUTED",
+          paymentStatus: "PAID",
+          paymentReference: "devpay_dispute",
+          provider: {
+            email: "creator@example.com"
+          },
+          deliveries: [],
+          consultation: {
+            agentPackage: {
+              name: "Research Assistant"
+            }
           }
         }
-      },
-      {
-        id: "order-2",
-        title: "Recovery package",
-        buyerEmail: "retry@example.com",
-        status: "PENDING_PAYMENT",
-        paymentStatus: "FAILED",
-        paymentReference: "devpay_failed",
-        provider: {
-          email: "ops@example.com"
-        },
-        deliveries: [],
-        consultation: {
-          agentPackage: {
-            name: "Ops Copilot"
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          id: "order-4",
+          title: "Settlement package",
+          buyerEmail: "settlement@example.com",
+          status: "COMPLETED",
+          paymentStatus: "PAID",
+          paymentReference: "devpay_settlement",
+          settledAt: null,
+          currency: "USD",
+          priceCents: 88000,
+          provider: {
+            email: "creator@example.com"
+          },
+          settlementLine: {
+            id: "line-1",
+            status: SettlementLineStatus.PENDING,
+            settlementBatch: null
           }
         }
-      },
+      ] as never);
+    vi.mocked(prisma.settlementBatch.findMany).mockResolvedValue([
       {
-        id: "order-3",
-        title: "Disputed package",
-        buyerEmail: "dispute@example.com",
-        status: "DISPUTED",
-        paymentStatus: "PAID",
-        paymentReference: "devpay_dispute",
-        provider: {
-          email: "creator@example.com"
-        },
-        deliveries: [],
-        consultation: {
-          agentPackage: {
-            name: "Research Assistant"
-          }
-        }
-      },
-      {
-        id: "order-4",
-        title: "Settlement package",
-        buyerEmail: "settlement@example.com",
-        status: "COMPLETED",
-        paymentStatus: "PAID",
-        paymentReference: "devpay_settlement",
-        settledAt: null,
+        id: "batch-1",
+        status: SettlementBatchStatus.SUBMITTED,
         currency: "USD",
-        priceCents: 88000,
+        totalAmountMinor: 88000,
+        payoutReference: null,
         provider: {
           email: "creator@example.com"
         },
-        deliveries: [],
-        consultation: {
-          agentPackage: {
-            name: "Research Assistant"
+        settlementLines: [
+          {
+            order: {
+              title: "Settlement package"
+            }
           }
-        }
+        ]
       }
     ] as never);
     vi.mocked(prisma.serviceOrder.count)
@@ -256,7 +280,9 @@ describe("admin pages", () => {
     expect(adminHtml).toContain("待结算订单");
     expect(adminHtml).toContain("Settlement package");
     expect(adminHtml).toContain("结算备注");
-    expect(adminHtml).toContain("标记已结算");
+    expect(adminHtml).toContain("提交结算批次");
+    expect(adminHtml).toContain("待出款结算批次");
+    expect(adminHtml).toContain("标记已出款");
     expect(whitelistHtml).toContain("白名单管理");
     expect(whitelistHtml).toContain("creator@example.com");
   });

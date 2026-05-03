@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AgentPackageStatus, WhitelistStatus } from "@prisma/client";
+import { AgentPackageStatus, SettlementLineStatus, WhitelistStatus } from "@prisma/client";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((location: string) => {
@@ -71,7 +71,11 @@ describe("creator page", () => {
     vi.mocked(prisma.serviceOrder.count).mockResolvedValue(2 as never);
     vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
       {
-        priceCents: 50000
+        priceCents: 50000,
+        settledAt: null,
+        settlementLine: {
+          status: SettlementLineStatus.PENDING
+        }
       }
     ] as never);
 

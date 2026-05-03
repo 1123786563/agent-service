@@ -1,4 +1,4 @@
-import { PaymentStatus, ServiceOrderStatus, WhitelistStatus } from "@prisma/client";
+import { PaymentStatus, ServiceOrderStatus, SettlementLineStatus, WhitelistStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -41,6 +41,7 @@ describe("creator orders page", () => {
         paymentStatus: PaymentStatus.UNPAID,
         buyerEmail: "buyer@example.com",
         deliveries: [],
+        settlementLine: null,
         consultation: {
           agentPackage: {
             name: "Research Assistant"
@@ -77,6 +78,7 @@ describe("creator orders page", () => {
             fileName: "handoff.txt"
           }
         ],
+        settlementLine: null,
         consultation: {
           agentPackage: {
             name: "Research Assistant"
@@ -112,6 +114,11 @@ describe("creator orders page", () => {
         settledAt: null,
         buyerEmail: "buyer@example.com",
         deliveries: [],
+        settlementLine: {
+          status: SettlementLineStatus.PENDING,
+          settledAt: null,
+          settlementBatch: null
+        },
         consultation: {
           agentPackage: {
             name: "Research Assistant"
@@ -124,5 +131,44 @@ describe("creator orders page", () => {
 
     expect(html).toContain("Settlement order");
     expect(html).toContain("结算状态：待结算");
+  });
+
+  it("shows settlement processing details for locked batches", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      id: "creator-1",
+      whitelistStatus: WhitelistStatus.ACTIVE
+    } as never);
+    vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
+      {
+        id: "order-3",
+        title: "Locked batch order",
+        scope: "Completed work",
+        currency: "USD",
+        priceCents: 40000,
+        status: ServiceOrderStatus.COMPLETED,
+        paymentStatus: PaymentStatus.PAID,
+        settledAt: null,
+        buyerEmail: "buyer@example.com",
+        deliveries: [],
+        settlementLine: {
+          status: SettlementLineStatus.LOCKED,
+          settledAt: null,
+          settlementBatch: {
+            payoutReference: "bank-transfer-2026-05-03"
+          }
+        },
+        consultation: {
+          agentPackage: {
+            name: "Research Assistant"
+          }
+        }
+      }
+    ] as never);
+
+    const html = renderToStaticMarkup(await CreatorOrdersPage());
+
+    expect(html).toContain("Locked batch order");
+    expect(html).toContain("结算处理中");
+    expect(html).toContain("bank-transfer-2026-05-03");
   });
 });

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { WhitelistStatus } from "@prisma/client";
 import { DisputeOrderButton } from "@/components/dispute-order-button";
 import { OrderStatusPill } from "@/components/order-status-pill";
+import { SettlementStatusPill } from "@/components/settlement-status-pill";
 import { UploadDeliveryForm } from "@/components/upload-delivery-form";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -32,6 +33,11 @@ export default async function CreatorOrdersPage() {
       consultation: {
         include: {
           agentPackage: true
+        }
+      },
+      settlementLine: {
+        include: {
+          settlementBatch: true
         }
       },
       deliveries: {
@@ -70,9 +76,17 @@ export default async function CreatorOrdersPage() {
               {order.currency} {order.priceCents} · 支付状态：{order.paymentStatus}
             </p>
             {order.status === "COMPLETED" ? (
-              <p className="muted">
-                结算状态：{order.settledAt ? `已结算 · ${order.settledAt.toLocaleString("zh-CN")}` : "待结算"}
-              </p>
+              <div className="actions" style={{ marginTop: 0 }}>
+                {order.settlementLine ? <SettlementStatusPill status={order.settlementLine.status} /> : <span className="status-pill">待结算</span>}
+                <p className="muted">
+                  结算状态：
+                  {order.settlementLine?.status === "SETTLED"
+                    ? `已结算 · ${(order.settlementLine.settledAt ?? order.settledAt)?.toLocaleString("zh-CN")}`
+                    : order.settlementLine?.status === "LOCKED"
+                      ? `结算处理中 · ${order.settlementLine.settlementBatch?.payoutReference ?? "待出款"}`
+                      : "待结算"}
+                </p>
+              </div>
             ) : null}
             {order.deliveries[0] ? (
               <p className="muted">最近交付：{order.deliveries[0].fileName}</p>

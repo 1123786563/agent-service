@@ -12,6 +12,7 @@ import {
 import { requireAdmin } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { resolveLatestOpenDisputeForOrder } from "@/server/disputes/service";
+import { buildSettlementLine, markSettlementBatchPaidOut, submitSettlementBatch } from "@/server/settlements/service";
 
 export async function activateCreatorWhitelist(formData: FormData) {
   await requireAdmin();
@@ -124,12 +125,30 @@ export async function markOrderSettled(formData: FormData) {
     throw new Error("Order ID is required");
   }
 
-  await prisma.serviceOrder.update({
-    where: { id: orderId },
-    data: {
-      settledAt: new Date(),
-      settlementReference: settlementReference || null
-    }
+  const line = await buildSettlementLine(orderId);
+  await submitSettlementBatch({
+    providerId: line.providerId,
+    lineIds: [line.id],
+    payoutReference: settlementReference || null
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/creator/orders");
+}
+
+export async function markSettlementBatchPaidOutAction(formData: FormData) {
+  await requireAdmin();
+
+  const batchId = String(formData.get("batchId") ?? "").trim();
+  const settlementReference = String(formData.get("settlementReference") ?? "").trim();
+  if (!batchId) {
+    throw new Error("Batch ID is required");
+  }
+
+  await markSettlementBatchPaidOut({
+    batchId,
+    payoutReference: settlementReference || null
   });
 
   revalidatePath("/admin");

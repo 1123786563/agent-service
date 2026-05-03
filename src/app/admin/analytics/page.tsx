@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UserRole } from "@prisma/client";
+import { SettlementLineStatus, UserRole } from "@prisma/client";
 import { getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -21,7 +21,7 @@ export default async function AdminAnalyticsPage() {
     redirect("/login");
   }
 
-  const [packages, consultationCount, orderCount, completedOrderCount, settledOrders] = await Promise.all([
+  const [packages, consultationCount, orderCount, completedOrderCount, completedPaidOrders] = await Promise.all([
     prisma.agentPackage.findMany({
       where: {
         status: "PUBLISHED"
@@ -54,9 +54,12 @@ export default async function AdminAnalyticsPage() {
         status: "COMPLETED",
         paymentStatus: "PAID"
       },
-      select: {
-        priceCents: true,
-        settledAt: true
+      include: {
+        settlementLine: {
+          include: {
+            settlementBatch: true
+          }
+        }
       }
     })
   ]);
@@ -93,9 +96,23 @@ export default async function AdminAnalyticsPage() {
   });
 
   const totalDownloads = packages.reduce((sum, agentPackage) => sum + agentPackage.downloadCount, 0);
-  const settledRevenueCents = settledOrders.reduce((sum, order) => sum + (order.settledAt ? order.priceCents : 0), 0);
-  const unsettledRevenueCents = settledOrders.reduce((sum, order) => sum + (!order.settledAt ? order.priceCents : 0), 0);
-  const settledOrderCount = settledOrders.filter((order) => Boolean(order.settledAt)).length;
+  const settledRevenueCents = completedPaidOrders.reduce((sum, order) => {
+    if (order.settlementLine?.status === SettlementLineStatus.SETTLED || order.settledAt) {
+      return sum + order.priceCents;
+    }
+
+    return sum;
+  }, 0);
+  const unsettledRevenueCents = completedPaidOrders.reduce((sum, order) => {
+    if (order.settlementLine?.status === SettlementLineStatus.SETTLED || order.settledAt) {
+      return sum;
+    }
+
+    return sum + order.priceCents;
+  }, 0);
+  const settledOrderCount = completedPaidOrders.filter((order) => {
+    return order.settlementLine?.status === SettlementLineStatus.SETTLED || Boolean(order.settledAt);
+  }).length;
   const packageRows = packages
     .map((agentPackage) => ({
       agentPackage,

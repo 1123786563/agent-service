@@ -1,8 +1,8 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PaymentStatus, UserRole } from "@prisma/client";
-import { archiveAgentPackage, markOrderSettled, resetOrderPayment, resolveDisputedOrder } from "./actions";
+import { PaymentStatus, SettlementBatchStatus, SettlementLineStatus, UserRole } from "@prisma/client";
+import { archiveAgentPackage, markOrderSettled, markSettlementBatchPaidOutAction, resetOrderPayment, resolveDisputedOrder } from "./actions";
 import { getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -56,27 +56,64 @@ export default async function AdminPage() {
     orderBy: { createdAt: "desc" },
     take: 10
   });
-  const orders = await prisma.serviceOrder.findMany({
-    include: {
-      provider: true,
-      consultation: {
-        include: {
-          agentPackage: true
+  const [orders, completedPaidOrders, pendingSettlementBatches] = await Promise.all([
+    prisma.serviceOrder.findMany({
+      include: {
+        provider: true,
+        consultation: {
+          include: {
+            agentPackage: true
+          }
+        },
+        deliveries: {
+          orderBy: {
+            submittedAt: "desc"
+          }
         }
       },
-      deliveries: {
-        orderBy: {
-          submittedAt: "desc"
+      orderBy: { createdAt: "desc" },
+      take: 10
+    }),
+    prisma.serviceOrder.findMany({
+      where: {
+        status: "COMPLETED",
+        paymentStatus: PaymentStatus.PAID
+      },
+      include: {
+        provider: true,
+        settlementLine: {
+          include: {
+            settlementBatch: true
+          }
         }
-      }
-    },
-    orderBy: { createdAt: "desc" },
-    take: 10
-  });
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10
+    }),
+    prisma.settlementBatch.findMany({
+      where: {
+        status: SettlementBatchStatus.SUBMITTED
+      },
+      include: {
+        provider: true,
+        settlementLines: {
+          include: {
+            order: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10
+    })
+  ]);
   const failedPaymentOrders = orders.filter((order) => order.paymentStatus === PaymentStatus.FAILED);
   const disputedOrders = orders.filter((order) => order.status === "DISPUTED");
-  const unsettledCompletedOrders = orders.filter((order) => {
-    return order.status === "COMPLETED" && order.paymentStatus === PaymentStatus.PAID && !order.settledAt;
+  const unsettledCompletedOrders = completedPaidOrders.filter((order) => {
+    if (!order.settlementLine) {
+      return !order.settledAt;
+    }
+
+    return order.settlementLine.status === SettlementLineStatus.PENDING;
   });
   const creatorRows = await prisma.user.findMany({
     where: {
@@ -314,7 +351,7 @@ export default async function AdminPage() {
       <div className="section-header" style={{ marginTop: 32 }}>
         <div>
           <h2>待结算订单</h2>
-          <p className="muted">标记已完成且已收款的订单已结算。</p>
+          <p className="muted">为已完成且已收款的订单提交结算批次。</p>
         </div>
       </div>
       <div className="list">
@@ -338,7 +375,46 @@ export default async function AdminPage() {
                 结算备注
                 <input name="settlementReference" placeholder="bank-transfer-2026-05-01" type="text" />
               </label>
-              <button className="button secondary" type="submit">标记已结算</button>
+              <button className="button secondary" type="submit">提交结算批次</button>
+            </form>
+          </article>
+        ))}
+      </div>
+
+      <div className="section-header" style={{ marginTop: 32 }}>
+        <div>
+          <h2>待出款结算批次</h2>
+          <p className="muted">已提交批次，等待平台完成实际出款并回填参考号。</p>
+        </div>
+      </div>
+      <div className="list">
+        {pendingSettlementBatches.length === 0 ? (
+          <article className="panel">
+            <p className="muted">暂无待出款结算批次。</p>
+          </article>
+        ) : pendingSettlementBatches.map((batch) => (
+          <article className="panel" key={batch.id}>
+            <h3>{batch.provider.email}</h3>
+            <p className="muted">
+              批次状态：{batch.status} · 金额：{batch.currency} {batch.totalAmountMinor} · 订单数：
+              {batch.settlementLines.length}
+            </p>
+            <p className="muted">
+              订单：
+              {batch.settlementLines.map((line) => line.order.title).join("、")}
+            </p>
+            <form action={markSettlementBatchPaidOutAction} className="form">
+              <input name="batchId" type="hidden" value={batch.id} />
+              <label>
+                出款参考号
+                <input
+                  defaultValue={batch.payoutReference ?? ""}
+                  name="settlementReference"
+                  placeholder="bank-transfer-2026-05-01"
+                  type="text"
+                />
+              </label>
+              <button className="button secondary" type="submit">标记已出款</button>
             </form>
           </article>
         ))}

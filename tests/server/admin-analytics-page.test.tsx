@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { UserRole } from "@prisma/client";
+import { SettlementLineStatus, UserRole } from "@prisma/client";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((location: string) => {
@@ -89,11 +89,21 @@ describe("admin analytics page", () => {
     vi.mocked(prisma.serviceOrder.findMany).mockResolvedValue([
       {
         priceCents: 5000,
-        settledAt: new Date("2026-05-01T00:00:00.000Z")
+        settledAt: new Date("2026-05-01T00:00:00.000Z"),
+        settlementLine: {
+          status: SettlementLineStatus.SETTLED,
+          settlementBatch: {
+            payoutReference: "bank-transfer-2026-05-01"
+          }
+        }
       },
       {
         priceCents: 7000,
-        settledAt: null
+        settledAt: null,
+        settlementLine: {
+          status: SettlementLineStatus.PENDING,
+          settlementBatch: null
+        }
       }
     ] as never);
     vi.mocked(prisma.user.findMany).mockResolvedValue([
