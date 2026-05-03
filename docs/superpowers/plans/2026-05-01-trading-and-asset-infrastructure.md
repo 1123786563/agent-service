@@ -1,6 +1,6 @@
 # Trading and Asset Infrastructure Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the next infrastructure layer for the Hermes-agent marketplace: controlled asset downloads, real payment provider support, refund/dispute records, and settlement batch accounting.
 
@@ -153,7 +153,7 @@ tests/
 - Test: `tests/server/local-storage.test.ts`
 - Test: `tests/server/local-delivery-storage.test.ts`
 
-- [ ] **Step 1: Write failing schema-oriented tests for file metadata expectations**
+- [x] **Step 1: Write failing schema-oriented tests for file metadata expectations**
 
 ```ts
 it("stores checksum and object metadata for uploaded agent zips", async () => {
@@ -170,12 +170,12 @@ it("stores checksum and object metadata for delivery uploads", async () => {
 });
 ```
 
-- [ ] **Step 2: Run targeted tests and confirm failure**
+- [x] **Step 2: Run targeted tests and confirm failure**
 
 Run: `npm run test -- tests/server/local-storage.test.ts tests/server/local-delivery-storage.test.ts`
 Expected: FAIL because storage helpers do not return object metadata yet.
 
-- [ ] **Step 3: Extend Prisma models and migration for asset metadata and audit log**
+- [x] **Step 3: Extend Prisma models and migration for asset metadata and audit log**
 
 ```prisma
 enum StorageProviderKind {
@@ -211,7 +211,7 @@ model AgentPackage {
 }
 ```
 
-- [ ] **Step 4: Backfill existing package and delivery rows in the migration**
+- [x] **Step 4: Backfill existing package and delivery rows in the migration**
 
 ```sql
 UPDATE "AgentPackage"
@@ -228,7 +228,7 @@ SET "objectKey" = regexp_replace("fileUrl", '^/api/deliveries/', 'deliveries/'),
 WHERE "objectKey" IS NULL;
 ```
 
-- [ ] **Step 5: Update current upload persistence to fill the new fields**
+- [x] **Step 5: Update current upload persistence to fill the new fields**
 
 ```ts
 type StoredObject = {
@@ -243,14 +243,14 @@ type StoredObject = {
 };
 ```
 
-- [ ] **Step 6: Run migration, generate client, and re-run storage tests**
+- [x] **Step 6: Run migration, generate client, and re-run storage tests**
 
 Run: `npm run prisma:generate`
 Run: `DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:55432/hermes_agent_marketplace?schema=public' npx prisma migrate dev --name phase5a_asset_metadata`
 Run: `npm run test -- tests/server/local-storage.test.ts tests/server/local-delivery-storage.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations src/server/agents/package-service.ts src/server/deliveries/service.ts tests/server/local-storage.test.ts tests/server/local-delivery-storage.test.ts
@@ -268,7 +268,7 @@ git commit -m "feat: add asset metadata and audit schema"
 - Test: `tests/server/local-storage.test.ts`
 - Test: `tests/server/local-delivery-storage.test.ts`
 
-- [ ] **Step 1: Write failing tests for provider-backed storage helpers**
+- [x] **Step 1: Write failing tests for provider-backed storage helpers**
 
 ```ts
 it("reads a stored zip through the storage provider interface", async () => {
@@ -281,12 +281,12 @@ it("builds deterministic object keys for local agent packages", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to confirm missing provider interface**
+- [x] **Step 2: Run tests to confirm missing provider interface**
 
 Run: `npm run test -- tests/server/local-storage.test.ts tests/server/local-delivery-storage.test.ts`
 Expected: FAIL because `storageProvider` and builder helpers do not exist.
 
-- [ ] **Step 3: Add the provider contract and local implementation**
+- [x] **Step 3: Add the provider contract and local implementation**
 
 ```ts
 export interface StorageProvider {
@@ -298,7 +298,7 @@ export interface StorageProvider {
 }
 ```
 
-- [ ] **Step 4: Keep current local helpers as thin compatibility wrappers**
+- [x] **Step 4: Keep current local helpers as thin compatibility wrappers**
 
 ```ts
 export async function readStoredZip(objectKey: string) {
@@ -306,7 +306,7 @@ export async function readStoredZip(objectKey: string) {
 }
 ```
 
-- [ ] **Step 5: Add an S3-compatible adapter skeleton without wiring it live**
+- [x] **Step 5: Add an S3-compatible adapter skeleton without wiring it live**
 
 ```ts
 export class S3CompatibleStorageProvider implements StorageProvider {
@@ -317,12 +317,12 @@ export class S3CompatibleStorageProvider implements StorageProvider {
 }
 ```
 
-- [ ] **Step 6: Re-run storage tests**
+- [x] **Step 6: Re-run storage tests**
 
 Run: `npm run test -- tests/server/local-storage.test.ts tests/server/local-delivery-storage.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/server/storage/provider.ts src/server/storage/local-provider.ts src/server/storage/s3-provider.ts src/server/storage/local-storage.ts src/server/storage/local-delivery-storage.ts tests/server/local-storage.test.ts tests/server/local-delivery-storage.test.ts
@@ -344,7 +344,7 @@ git commit -m "feat: add storage provider abstraction"
 - Test: `tests/server/delivery-download-route.test.ts`
 - Test: `tests/server/audit-service.test.ts`
 
-- [ ] **Step 1: Write failing tests for ticket expiry, audience, tamper detection, and authorization**
+- [x] **Step 1: Write failing tests for ticket expiry, audience, tamper detection, and authorization**
 
 ```ts
 it("rejects an expired delivery ticket", async () => {
@@ -358,12 +358,12 @@ it("rejects using an agent ticket on a delivery route", async () => {
 });
 ```
 
-- [ ] **Step 2: Run targeted tests and confirm failure**
+- [x] **Step 2: Run targeted tests and confirm failure**
 
 Run: `npm run test -- tests/server/download-ticket.test.ts tests/server/download-authorization.test.ts tests/server/agent-download-route.test.ts tests/server/delivery-download-route.test.ts`
 Expected: FAIL because ticket and authorization services do not exist.
 
-- [ ] **Step 3: Add the ticket service with HMAC signing and `keyId` support**
+- [x] **Step 3: Add the ticket service with HMAC signing and `keyId` support**
 
 ```ts
 export type DownloadTicketPayload = {
@@ -381,7 +381,7 @@ export type DownloadTicketPayload = {
 };
 ```
 
-- [ ] **Step 4: Add authorization checks for package and delivery resource state**
+- [x] **Step 4: Add authorization checks for package and delivery resource state**
 
 ```ts
 export async function authorizeAgentZipDownload(input: { slug: string; sessionId?: string | null }) {
@@ -395,7 +395,7 @@ export async function authorizeDeliveryDownload(input: { orderId: string; delive
 }
 ```
 
-- [ ] **Step 5: Update both download routes to issue tickets, verify tickets, and emit audit records**
+- [x] **Step 5: Update both download routes to issue tickets, verify tickets, and emit audit records**
 
 ```ts
 const authorization = await authorizeAgentZipDownload(...);
@@ -404,12 +404,12 @@ const verified = await verifyDownloadTicket(url.searchParams.get("ticket"), { au
 await recordAuditLog({ action: "asset.download", targetType: "AgentPackage", targetId: authorization.resourceId });
 ```
 
-- [ ] **Step 6: Re-run route and ticket tests**
+- [x] **Step 6: Re-run route and ticket tests**
 
 Run: `npm run test -- tests/server/download-ticket.test.ts tests/server/download-authorization.test.ts tests/server/agent-download-route.test.ts tests/server/delivery-download-route.test.ts tests/server/audit-service.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/server/storage/download-tickets.ts src/server/storage/download-authorization.ts src/server/audit/service.ts src/server/auth/session.ts src/app/api/agents/[slug]/download/route.ts src/app/api/orders/[id]/deliveries/[deliveryId]/download/route.ts tests/server/download-ticket.test.ts tests/server/download-authorization.test.ts tests/server/agent-download-route.test.ts tests/server/delivery-download-route.test.ts tests/server/audit-service.test.ts
@@ -425,7 +425,7 @@ git commit -m "feat: secure asset downloads with signed tickets"
 - Test: `tests/server/payment-ledger.test.ts`
 - Test: `tests/server/order-service.test.ts`
 
-- [ ] **Step 1: Write failing tests for provider event id uniqueness and cancelled payment state**
+- [x] **Step 1: Write failing tests for provider event id uniqueness and cancelled payment state**
 
 ```ts
 it("deduplicates repeated provider webhook events", async () => {
@@ -440,12 +440,12 @@ it("keeps cancelled checkout orders in pending payment", async () => {
 });
 ```
 
-- [ ] **Step 2: Run targeted tests**
+- [x] **Step 2: Run targeted tests**
 
 Run: `npm run test -- tests/server/payment-ledger.test.ts tests/server/order-service.test.ts tests/server/payment-route.test.ts`
 Expected: FAIL because `PaymentLedger` and `PaymentStatus.CANCELLED` do not exist.
 
-- [ ] **Step 3: Extend Prisma for payment ledger and payment status**
+- [x] **Step 3: Extend Prisma for payment ledger and payment status**
 
 ```prisma
 enum PaymentStatus {
@@ -476,7 +476,7 @@ model PaymentLedger {
 }
 ```
 
-- [ ] **Step 4: Add ledger recording helpers and order projection rules**
+- [x] **Step 4: Add ledger recording helpers and order projection rules**
 
 ```ts
 export async function recordPaymentEvent(event: NormalizedPaymentEvent) {
@@ -484,13 +484,13 @@ export async function recordPaymentEvent(event: NormalizedPaymentEvent) {
 }
 ```
 
-- [ ] **Step 5: Re-run ledger and order tests**
+- [x] **Step 5: Re-run ledger and order tests**
 
 Run: `npm run prisma:generate`
 Run: `npm run test -- tests/server/payment-ledger.test.ts tests/server/order-service.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations src/server/payments/ledger.ts tests/server/payment-ledger.test.ts tests/server/order-service.test.ts
@@ -508,7 +508,7 @@ git commit -m "feat: add payment ledger groundwork"
 - Modify: `src/app/api/payments/webhook/route.ts`
 - Test: `tests/server/payment-route.test.ts`
 
-- [ ] **Step 1: Write failing tests for normalized webhook processing and amount validation**
+- [x] **Step 1: Write failing tests for normalized webhook processing and amount validation**
 
 ```ts
 it("rejects a webhook whose amount does not match the order amount", async () => {
@@ -523,12 +523,12 @@ it("accepts repeated provider events without updating the order twice", async ()
 });
 ```
 
-- [ ] **Step 2: Run payment route tests**
+- [x] **Step 2: Run payment route tests**
 
 Run: `npm run test -- tests/server/payment-route.test.ts`
 Expected: FAIL because the route does not normalize provider events or use the ledger yet.
 
-- [ ] **Step 3: Refactor the adapter contract around checkout sessions and normalized events**
+- [x] **Step 3: Refactor the adapter contract around checkout sessions and normalized events**
 
 ```ts
 export interface PaymentProvider {
@@ -538,7 +538,7 @@ export interface PaymentProvider {
 }
 ```
 
-- [ ] **Step 4: Keep the dev adapter working and add a disabled-by-default real provider adapter**
+- [x] **Step 4: Keep the dev adapter working and add a disabled-by-default real provider adapter**
 
 ```ts
 export class StripePaymentProvider implements PaymentProvider {
@@ -548,7 +548,7 @@ export class StripePaymentProvider implements PaymentProvider {
 }
 ```
 
-- [ ] **Step 5: Wire webhook route through ledger, event normalization, and audit log**
+- [x] **Step 5: Wire webhook route through ledger, event normalization, and audit log**
 
 ```ts
 const event = await provider.parseWebhook(request);
@@ -559,12 +559,12 @@ if (!ledgerResult.duplicate) {
 await recordAuditLog({ action: "payment.webhook.processed", targetType: "ServiceOrder", targetId: event.orderId });
 ```
 
-- [ ] **Step 6: Re-run payment route tests**
+- [x] **Step 6: Re-run payment route tests**
 
 Run: `npm run test -- tests/server/payment-route.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/server/payments/adapter.ts src/server/payments/dev-adapter.ts src/server/payments/webhook-events.ts src/server/payments/stripe-adapter.ts src/app/api/orders/[id]/pay/route.ts src/app/api/payments/webhook/route.ts tests/server/payment-route.test.ts
@@ -579,7 +579,7 @@ git commit -m "feat: refactor payments for real provider integration"
 - Test: `tests/server/dispute-service.test.ts`
 - Test: `tests/server/refund-service.test.ts`
 
-- [ ] **Step 1: Write failing tests for dispute evidence, refund persistence, and work-start gating**
+- [x] **Step 1: Write failing tests for dispute evidence, refund persistence, and work-start gating**
 
 ```ts
 it("creates a dispute with evidence records", async () => {
@@ -592,12 +592,12 @@ it("allows automatic refund only when workStartedAt is null", async () => {
 });
 ```
 
-- [ ] **Step 2: Run dispute/refund tests**
+- [x] **Step 2: Run dispute/refund tests**
 
 Run: `npm run test -- tests/server/dispute-service.test.ts tests/server/refund-service.test.ts`
 Expected: FAIL because the tables and service modules do not exist.
 
-- [ ] **Step 3: Extend Prisma for disputes, evidence, refunds, and `workStartedAt`**
+- [x] **Step 3: Extend Prisma for disputes, evidence, refunds, and `workStartedAt`**
 
 ```prisma
 model Dispute {
@@ -627,13 +627,13 @@ model Refund {
 }
 ```
 
-- [ ] **Step 4: Generate migration and client**
+- [x] **Step 4: Generate migration and client**
 
 Run: `npm run prisma:generate`
 Run: `DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:55432/hermes_agent_marketplace?schema=public' npx prisma migrate dev --name phase5c_disputes_refunds`
 Expected: migration applies cleanly.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations tests/server/dispute-service.test.ts tests/server/refund-service.test.ts
@@ -654,7 +654,7 @@ git commit -m "feat: add dispute and refund schema"
 - Test: `tests/server/admin-actions.test.ts`
 - Test: `tests/server/order-service.test.ts`
 
-- [ ] **Step 1: Write failing tests for refund outcomes and dispute resolution transitions**
+- [x] **Step 1: Write failing tests for refund outcomes and dispute resolution transitions**
 
 ```ts
 it("resolves a dispute into a partial refund without corrupting order state", async () => {
@@ -669,12 +669,12 @@ it("returns a disputed order to delivered when admin chooses return-to-delivered
 });
 ```
 
-- [ ] **Step 2: Run targeted tests**
+- [x] **Step 2: Run targeted tests**
 
 Run: `npm run test -- tests/server/dispute-service.test.ts tests/server/refund-service.test.ts tests/server/admin-actions.test.ts tests/server/order-service.test.ts`
 Expected: FAIL because service implementations and admin actions are incomplete.
 
-- [ ] **Step 3: Implement dispute service, evidence handling, and automatic refund guardrails**
+- [x] **Step 3: Implement dispute service, evidence handling, and automatic refund guardrails**
 
 ```ts
 export async function requestAutomaticRefund(input: { orderId: string; actorId: string }) {
@@ -685,7 +685,7 @@ export async function requestAutomaticRefund(input: { orderId: string; actorId: 
 }
 ```
 
-- [ ] **Step 4: Implement admin resolution actions and audit log entries**
+- [x] **Step 4: Implement admin resolution actions and audit log entries**
 
 ```ts
 await recordAuditLog({
@@ -697,12 +697,12 @@ await recordAuditLog({
 });
 ```
 
-- [ ] **Step 5: Re-run dispute, refund, and admin tests**
+- [x] **Step 5: Re-run dispute, refund, and admin tests**
 
 Run: `npm run test -- tests/server/dispute-service.test.ts tests/server/refund-service.test.ts tests/server/admin-actions.test.ts tests/server/order-service.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/server/disputes/service.ts src/server/refunds/service.ts src/server/orders/service.ts src/app/admin/actions.ts src/app/admin/page.tsx src/app/api/orders/[id]/dispute/route.ts tests/server/dispute-service.test.ts tests/server/refund-service.test.ts tests/server/admin-actions.test.ts tests/server/order-service.test.ts
@@ -716,7 +716,7 @@ git commit -m "feat: add dispute and refund workflows"
 - Create: `prisma/migrations/<timestamp>_phase5d_settlement_batches/`
 - Test: `tests/server/settlement-service.test.ts`
 
-- [ ] **Step 1: Write failing tests for settlement eligibility and batch locking**
+- [x] **Step 1: Write failing tests for settlement eligibility and batch locking**
 
 ```ts
 it("creates a pending settlement line only for completed paid undisputed orders", async () => {
@@ -731,12 +731,12 @@ it("locks settlement lines once a batch is submitted", async () => {
 });
 ```
 
-- [ ] **Step 2: Run settlement tests**
+- [x] **Step 2: Run settlement tests**
 
 Run: `npm run test -- tests/server/settlement-service.test.ts`
 Expected: FAIL because settlement tables and service do not exist.
 
-- [ ] **Step 3: Extend Prisma for settlement lines and batches**
+- [x] **Step 3: Extend Prisma for settlement lines and batches**
 
 ```prisma
 model SettlementLine {
@@ -756,7 +756,7 @@ model SettlementLine {
 }
 ```
 
-- [ ] **Step 4: Add a compatibility projection rule**
+- [x] **Step 4: Add a compatibility projection rule**
 
 ```ts
 // when a settlement line is marked settled:
@@ -769,13 +769,13 @@ await prisma.serviceOrder.update({
 });
 ```
 
-- [ ] **Step 5: Run Prisma generate and settlement tests**
+- [x] **Step 5: Run Prisma generate and settlement tests**
 
 Run: `npm run prisma:generate`
 Run: `npm run test -- tests/server/settlement-service.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations tests/server/settlement-service.test.ts
@@ -799,7 +799,7 @@ git commit -m "feat: add settlement line and batch schema"
 - Test: `tests/server/creator-orders-page.test.tsx`
 - Test: `tests/server/creator-page.test.tsx`
 
-- [ ] **Step 1: Write failing UI and service tests for settlement batches**
+- [x] **Step 1: Write failing UI and service tests for settlement batches**
 
 ```ts
 it("shows pending settlement batches in admin", async () => {
@@ -813,12 +813,12 @@ it("shows unsettled revenue from settlement lines on the creator dashboard", asy
 });
 ```
 
-- [ ] **Step 2: Run targeted tests**
+- [x] **Step 2: Run targeted tests**
 
 Run: `npm run test -- tests/server/settlement-service.test.ts tests/server/admin-actions.test.ts tests/server/admin-page.test.tsx tests/server/admin-analytics-page.test.tsx tests/server/creator-orders-page.test.tsx tests/server/creator-page.test.tsx`
 Expected: FAIL because admin and creator views still read legacy settlement flags directly.
 
-- [ ] **Step 3: Implement settlement line refresh, batch submit, payout mark, and compatibility projection**
+- [x] **Step 3: Implement settlement line refresh, batch submit, payout mark, and compatibility projection**
 
 ```ts
 export async function submitSettlementBatch(input: { providerId: string; lineIds: string[]; payoutReference?: string | null }) {
@@ -826,19 +826,19 @@ export async function submitSettlementBatch(input: { providerId: string; lineIds
 }
 ```
 
-- [ ] **Step 4: Update admin and creator pages to read from settlement tables first**
+- [x] **Step 4: Update admin and creator pages to read from settlement tables first**
 
 ```ts
 const settlementSummary = await listCreatorSettlementSummary(session.user.id);
 const pendingBatches = await listPendingSettlementBatches();
 ```
 
-- [ ] **Step 5: Re-run settlement and page tests**
+- [x] **Step 5: Re-run settlement and page tests**
 
 Run: `npm run test -- tests/server/settlement-service.test.ts tests/server/admin-actions.test.ts tests/server/admin-page.test.tsx tests/server/admin-analytics-page.test.tsx tests/server/creator-orders-page.test.tsx tests/server/creator-page.test.tsx`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/server/settlements/service.ts src/app/admin/actions.ts src/app/admin/page.tsx src/app/admin/analytics/page.tsx src/app/creator/orders/page.tsx src/app/creator/page.tsx src/components/settlement-status-pill.tsx tests/server/settlement-service.test.ts tests/server/admin-actions.test.ts tests/server/admin-page.test.tsx tests/server/admin-analytics-page.test.tsx tests/server/creator-orders-page.test.tsx tests/server/creator-page.test.tsx
@@ -854,7 +854,7 @@ git commit -m "feat: add settlement batch operations"
 - Modify: `docs/phase-4-operator-guide.md`
 - Create: `docs/phase-5-operator-guide.md`
 
-- [ ] **Step 1: Add failing smoke coverage for private downloads, payment cancellation, refund/dispute, and settlement submission**
+- [x] **Step 1: Add failing smoke coverage for private downloads, payment cancellation, refund/dispute, and settlement submission**
 
 ```ts
 test("buyer cannot download a delivery without a valid ticket", async ({ request }) => {
@@ -868,12 +868,12 @@ test("admin can submit a settlement batch after a completed paid order", async (
 });
 ```
 
-- [ ] **Step 2: Run e2e tests and confirm failures**
+- [x] **Step 2: Run e2e tests and confirm failures**
 
 Run: `npm run test:e2e`
 Expected: FAIL in the new private download and settlement scenarios.
 
-- [ ] **Step 3: Update operator docs for new flows and configuration**
+- [x] **Step 3: Update operator docs for new flows and configuration**
 
 ```text
 - DOWNLOAD_TICKET_SECRET
@@ -884,14 +884,14 @@ Expected: FAIL in the new private download and settlement scenarios.
 - settlement batch submission flow
 ```
 
-- [ ] **Step 4: Run the full verification suite**
+- [x] **Step 4: Run the full verification suite**
 
 Run: `npm run test`
 Run: `npm run build`
 Run: `npm run test:e2e`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/e2e/delivery.spec.ts tests/e2e/order-lifecycle.spec.ts tests/e2e/settlement.spec.ts docs/phase-4-operator-guide.md docs/phase-5-operator-guide.md
