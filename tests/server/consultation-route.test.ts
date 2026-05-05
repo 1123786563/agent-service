@@ -1,15 +1,26 @@
 import { ConsultationStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/server/auth/session", () => ({
+  getCurrentUser: vi.fn()
+}));
+
 vi.mock("@/server/consultations/service", () => ({
   createConsultation: vi.fn()
 }));
 
+vi.mock("@/server/rate-limit", () => ({
+  rateLimiter: { check: () => ({ allowed: true, retryAfterMs: 0, remaining: 10 }) },
+  RATE_LIMIT_CONSULTATION: { windowMs: 60000, maxRequests: 10 }
+}));
+
 import { POST } from "@/app/api/consultations/route";
 import { createConsultation } from "@/server/consultations/service";
+import { getCurrentUser } from "@/server/auth/session";
 
 describe("consultation route", () => {
   it("creates a consultation for a published agent package", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: "user-1", email: "buyer@example.com" } as never);
     vi.mocked(createConsultation).mockResolvedValue({
       id: "consultation-1",
       status: ConsultationStatus.NEW,
@@ -44,6 +55,7 @@ describe("consultation route", () => {
   });
 
   it("returns not found when the package is missing", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: "user-1", email: "buyer@example.com" } as never);
     vi.mocked(createConsultation).mockRejectedValue(new Error("Published agent package not found"));
 
     const response = await POST(new Request("http://localhost/api/consultations", {
@@ -65,6 +77,7 @@ describe("consultation route", () => {
   });
 
   it("returns validation errors for invalid input", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: "user-1", email: "buyer@example.com" } as never);
     vi.mocked(createConsultation).mockRejectedValue(new Error("Invalid email"));
 
     const response = await POST(new Request("http://localhost/api/consultations", {

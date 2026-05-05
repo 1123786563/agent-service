@@ -204,7 +204,7 @@ model AgentPackageFavorite {
 model AgentPackageReview {
   id             String       @id @default(cuid())
   agentPackageId String
-  userId         String?
+  userId         String
   rating         Int
   title          String?
   body           String?
@@ -212,8 +212,9 @@ model AgentPackageReview {
   updatedAt      DateTime     @updatedAt
 
   agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
-  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([agentPackageId, userId])
   @@index([agentPackageId, createdAt])
   @@index([userId, createdAt])
 }
@@ -327,7 +328,7 @@ model ServiceOrder {
   settlementLine   SettlementLine?
   settlementAdjustments SettlementAdjustment[]
 
-  @@index([consultationId])
+  @@unique([consultationId])
   @@index([providerId, createdAt])
   @@index([buyerEmail, createdAt])
   @@index([buyerUserId])

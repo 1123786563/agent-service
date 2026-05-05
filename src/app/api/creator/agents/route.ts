@@ -2,6 +2,7 @@ import { WhitelistStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { getCurrentUser, requireCreator } from "@/server/auth/session";
 import { createAgentPackageFromZip } from "@/server/agents/package-service";
+import { rateLimiter, RATE_LIMIT_UPLOAD } from "@/server/rate-limit";
 
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
@@ -19,6 +20,17 @@ export async function POST(request: Request) {
   }
 
   const user = await requireCreator();
+
+  const uploadLimit = rateLimiter.check(`upload:${user.id}`, RATE_LIMIT_UPLOAD);
+  if (!uploadLimit.allowed) {
+    return Response.json({
+      errors: ["Rate limited"]
+    }, {
+      status: 429,
+      headers: { "Retry-After": String(Math.ceil(uploadLimit.retryAfterMs / 1000)) }
+    });
+  }
+
   const formData = await request.formData();
   const file = formData.get("file");
 

@@ -28,6 +28,7 @@ describe("agent product service", () => {
   it("validates review rating range", async () => {
     await expect(submitAgentPackageReview({
       agentPackageId: "pkg-1",
+      userId: "user-1",
       rating: 6
     }, {} as never)).rejects.toThrow("Review rating must be between 1 and 5");
   });

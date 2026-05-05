@@ -2,6 +2,13 @@ import { PaymentStatus, ServiceOrderStatus, ConsultationStatus, type Prisma } fr
 import { z } from "zod";
 import { prisma } from "@/server/db";
 
+export class ConcurrentModificationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConcurrentModificationError";
+  }
+}
+
 const titleSchema = z.string().trim().min(1).max(200);
 const scopeSchema = z.string().trim().min(1).max(5000);
 const currencySchema = z.string().trim().length(3).transform((value) => value.toUpperCase());
@@ -25,7 +32,6 @@ type ConsultationSummary = {
 
 type OrderStore = {
   findConsultationById(id: string): Promise<ConsultationSummary | null>;
-  consultationHasOrder(consultationId: string): Promise<boolean>;
   createOrderForConsultation(data: {
     consultationId: string;
     buyerEmail: string;
@@ -41,6 +47,7 @@ type OrderStore = {
   findManyForProvider(providerId: string): Promise<ServiceOrderWithRelations[]>;
   findUniqueById(id: string): Promise<ServiceOrderWithRelations | null>;
   updateOrder(args: Prisma.ServiceOrderUpdateArgs): Promise<ServiceOrderWithRelations>;
+  updateMany(args: Prisma.ServiceOrderUpdateManyArgs): Promise<{ count: number }>;
 };
 
 type OrderServiceDeps = {
@@ -99,12 +106,6 @@ const defaultDeps: OrderServiceDeps = {
           scopedSummary: true
         }
       });
-    },
-    async consultationHasOrder(consultationId) {
-      const count = await prisma.serviceOrder.count({
-        where: { consultationId }
-      });
-      return count > 0;
     },
     createOrderForConsultation(data) {
       return prisma.$transaction(async (tx) => {
@@ -182,6 +183,9 @@ const defaultDeps: OrderServiceDeps = {
           provider: true
         }
       });
+    },
+    updateMany(args) {
+      return prisma.serviceOrder.updateMany(args);
     }
   }
 };
@@ -229,21 +233,29 @@ export async function createServiceOrder(
     throw new Error("Consultation must be scoped before creating an order");
   }
 
-  if (await deps.store.consultationHasOrder(consultationId)) {
-    throw new Error("Consultation already has an order");
+  try {
+    return await deps.store.createOrderForConsultation({
+      consultationId,
+      buyerEmail: consultation.buyerEmail,
+      buyerUserId: consultation.buyerUserId,
+      providerId,
+      title,
+      scope,
+      priceCents: input.priceCents,
+      currency,
+      paymentProvider
+    });
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      throw new Error("订单已创建");
+    }
+    throw error;
   }
-
-  return deps.store.createOrderForConsultation({
-    consultationId,
-    buyerEmail: consultation.buyerEmail,
-    buyerUserId: consultation.buyerUserId,
-    providerId,
-    title,
-    scope,
-    priceCents: input.priceCents,
-    currency,
-    paymentProvider
-  });
 }
 
 export async function listServiceOrdersForBuyerEmail(buyerEmail: string, deps: OrderServiceDeps = defaultDeps) {
@@ -278,27 +290,39 @@ export async function markServiceOrderPaid(
     throw new Error("Order ID is required");
   }
 
-  const order = await deps.store.findUniqueById(orderId);
-  if (!order) {
+  const existing = await deps.store.findUniqueById(orderId);
+  if (!existing) {
     throw new Error("Service order not found");
   }
 
-  if (order.status === ServiceOrderStatus.CANCELLED || order.status === ServiceOrderStatus.DISPUTED) {
-    throw new Error(`Cannot mark ${order.status.toLowerCase()} order as paid`);
+  // Idempotency: already paid
+  if (existing.paymentStatus === PaymentStatus.PAID && existing.status === ServiceOrderStatus.IN_PROGRESS) {
+    return existing;
   }
 
-  if (order.paymentStatus === PaymentStatus.PAID && order.status === ServiceOrderStatus.IN_PROGRESS) {
-    return order;
+  if (existing.status === ServiceOrderStatus.CANCELLED || existing.status === ServiceOrderStatus.DISPUTED) {
+    throw new Error(`Cannot mark ${existing.status.toLowerCase()} order as paid`);
   }
 
-  return deps.store.updateOrder({
-    where: { id: orderId },
+  // Atomic transition: only update if still in a payable state
+  const result = await deps.store.updateMany({
+    where: {
+      id: orderId,
+      status: { notIn: [ServiceOrderStatus.CANCELLED, ServiceOrderStatus.DISPUTED] },
+      paymentStatus: { not: PaymentStatus.PAID }
+    },
     data: {
       paymentStatus: PaymentStatus.PAID,
       status: ServiceOrderStatus.IN_PROGRESS,
-      paymentReference: input.paymentReference ?? order.paymentReference
+      paymentReference: input.paymentReference ?? existing.paymentReference
     }
   });
+
+  if (result.count === 0) {
+    throw new ConcurrentModificationError("状态已变更，请刷新重试");
+  }
+
+  return deps.store.findUniqueById(orderId) as Promise<ServiceOrderWithRelations>;
 }
 
 export async function markServiceOrderPaymentFailed(
@@ -310,32 +334,42 @@ export async function markServiceOrderPaymentFailed(
     throw new Error("Order ID is required");
   }
 
-  const order = await deps.store.findUniqueById(orderId);
-  if (!order) {
+  const existing = await deps.store.findUniqueById(orderId);
+  if (!existing) {
     throw new Error("Service order not found");
   }
 
   if (
-    order.status === ServiceOrderStatus.CANCELLED ||
-    order.status === ServiceOrderStatus.DISPUTED ||
-    order.status === ServiceOrderStatus.DELIVERED ||
-    order.status === ServiceOrderStatus.COMPLETED
+    existing.status === ServiceOrderStatus.CANCELLED ||
+    existing.status === ServiceOrderStatus.DISPUTED ||
+    existing.status === ServiceOrderStatus.DELIVERED ||
+    existing.status === ServiceOrderStatus.COMPLETED
   ) {
-    throw new Error(`Cannot mark ${order.status.toLowerCase()} order as failed`);
+    throw new Error(`Cannot mark ${existing.status.toLowerCase()} order as failed`);
   }
 
-  if (order.paymentStatus === PaymentStatus.FAILED && order.status === ServiceOrderStatus.PENDING_PAYMENT) {
-    return order;
+  // Idempotency: already failed
+  if (existing.paymentStatus === PaymentStatus.FAILED && existing.status === ServiceOrderStatus.PENDING_PAYMENT) {
+    return existing;
   }
 
-  return deps.store.updateOrder({
-    where: { id: orderId },
+  const result = await deps.store.updateMany({
+    where: {
+      id: orderId,
+      status: { notIn: [ServiceOrderStatus.CANCELLED, ServiceOrderStatus.DISPUTED, ServiceOrderStatus.DELIVERED, ServiceOrderStatus.COMPLETED] }
+    },
     data: {
       paymentStatus: PaymentStatus.FAILED,
       status: ServiceOrderStatus.PENDING_PAYMENT,
-      paymentReference: input.paymentReference ?? order.paymentReference
+      paymentReference: input.paymentReference ?? existing.paymentReference
     }
   });
+
+  if (result.count === 0) {
+    throw new ConcurrentModificationError("状态已变更，请刷新重试");
+  }
+
+  return deps.store.findUniqueById(orderId) as Promise<ServiceOrderWithRelations>;
 }
 
 export async function markServiceOrderPaymentCancelled(
@@ -347,27 +381,38 @@ export async function markServiceOrderPaymentCancelled(
     throw new Error("Order ID is required");
   }
 
-  const order = await deps.store.findUniqueById(orderId);
-  if (!order) {
+  const existing = await deps.store.findUniqueById(orderId);
+  if (!existing) {
     throw new Error("Service order not found");
   }
 
-  if (order.status !== ServiceOrderStatus.PENDING_PAYMENT) {
+  if (existing.status !== ServiceOrderStatus.PENDING_PAYMENT) {
     throw new Error("Cannot mark non-pending order payment as cancelled");
   }
 
-  if (order.paymentStatus === PaymentStatus.CANCELLED) {
-    return order;
+  // Idempotency: already cancelled
+  if (existing.paymentStatus === PaymentStatus.CANCELLED) {
+    return existing;
   }
 
-  return deps.store.updateOrder({
-    where: { id: orderId },
+  const result = await deps.store.updateMany({
+    where: {
+      id: orderId,
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: { not: PaymentStatus.CANCELLED }
+    },
     data: {
       paymentStatus: PaymentStatus.CANCELLED,
       status: ServiceOrderStatus.PENDING_PAYMENT,
-      paymentReference: input.paymentReference ?? order.paymentReference
+      paymentReference: input.paymentReference ?? existing.paymentReference
     }
   });
+
+  if (result.count === 0) {
+    throw new ConcurrentModificationError("状态已变更，请刷新重试");
+  }
+
+  return deps.store.findUniqueById(orderId) as Promise<ServiceOrderWithRelations>;
 }
 
 export async function markServiceOrderDisputed(
@@ -379,8 +424,8 @@ export async function markServiceOrderDisputed(
     throw new Error("Order ID is required");
   }
 
-  const order = await deps.store.findUniqueById(orderId);
-  if (!order) {
+  const existing = await deps.store.findUniqueById(orderId);
+  if (!existing) {
     throw new Error("Service order not found");
   }
 
@@ -389,20 +434,28 @@ export async function markServiceOrderDisputed(
     ServiceOrderStatus.IN_PROGRESS,
     ServiceOrderStatus.DELIVERED
   ];
-  if (!disputableStatuses.includes(order.status)) {
+  if (!disputableStatuses.includes(existing.status)) {
     throw new Error("Service order cannot enter dispute from its current status");
   }
 
-  if (order.status === ServiceOrderStatus.DISPUTED) {
-    return order;
+  // Idempotency: already disputed
+  if (existing.status === ServiceOrderStatus.DISPUTED) {
+    return existing;
   }
 
-  return deps.store.updateOrder({
-    where: { id: orderId },
-    data: {
-      status: ServiceOrderStatus.DISPUTED
-    }
+  const result = await deps.store.updateMany({
+    where: {
+      id: orderId,
+      status: { in: [ServiceOrderStatus.PAID, ServiceOrderStatus.IN_PROGRESS, ServiceOrderStatus.DELIVERED] }
+    },
+    data: { status: ServiceOrderStatus.DISPUTED }
   });
+
+  if (result.count === 0) {
+    throw new ConcurrentModificationError("状态已变更，请刷新重试");
+  }
+
+  return deps.store.findUniqueById(orderId) as Promise<ServiceOrderWithRelations>;
 }
 
 export async function resolveDisputedServiceOrder(
@@ -414,21 +467,25 @@ export async function resolveDisputedServiceOrder(
     throw new Error("Order ID is required");
   }
 
-  const order = await deps.store.findUniqueById(orderId);
-  if (!order) {
+  const existing = await deps.store.findUniqueById(orderId);
+  if (!existing) {
     throw new Error("Service order not found");
   }
 
-  if (order.status !== ServiceOrderStatus.DISPUTED) {
+  if (existing.status !== ServiceOrderStatus.DISPUTED) {
     throw new Error("Service order is not disputed");
   }
 
-  return deps.store.updateOrder({
-    where: { id: orderId },
-    data: {
-      status: input.nextStatus
-    }
+  const result = await deps.store.updateMany({
+    where: { id: orderId, status: ServiceOrderStatus.DISPUTED },
+    data: { status: input.nextStatus }
   });
+
+  if (result.count === 0) {
+    throw new ConcurrentModificationError("状态已变更，请刷新重试");
+  }
+
+  return deps.store.findUniqueById(orderId) as Promise<ServiceOrderWithRelations>;
 }
 
 export async function cancelServiceOrder(
@@ -440,20 +497,28 @@ export async function cancelServiceOrder(
     throw new Error("Order ID is required");
   }
 
-  const order = await deps.store.findUniqueById(orderId);
-  if (!order) {
+  const existing = await deps.store.findUniqueById(orderId);
+  if (!existing) {
     throw new Error("Service order not found");
   }
 
   const cancellablePaymentStatuses: PaymentStatus[] = [PaymentStatus.UNPAID, PaymentStatus.FAILED, PaymentStatus.CANCELLED];
-  if (order.status !== ServiceOrderStatus.PENDING_PAYMENT || !cancellablePaymentStatuses.includes(order.paymentStatus)) {
+  if (existing.status !== ServiceOrderStatus.PENDING_PAYMENT || !cancellablePaymentStatuses.includes(existing.paymentStatus)) {
     throw new Error("Only unpaid pending orders can be cancelled");
   }
 
-  return deps.store.updateOrder({
-    where: { id: orderId },
-    data: {
-      status: ServiceOrderStatus.CANCELLED
-    }
+  const result = await deps.store.updateMany({
+    where: {
+      id: orderId,
+      status: ServiceOrderStatus.PENDING_PAYMENT,
+      paymentStatus: { in: [PaymentStatus.UNPAID, PaymentStatus.FAILED, PaymentStatus.CANCELLED] }
+    },
+    data: { status: ServiceOrderStatus.CANCELLED }
   });
+
+  if (result.count === 0) {
+    throw new ConcurrentModificationError("状态已变更，请刷新重试");
+  }
+
+  return deps.store.findUniqueById(orderId) as Promise<ServiceOrderWithRelations>;
 }

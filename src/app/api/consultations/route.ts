@@ -1,5 +1,6 @@
 import { createConsultation } from "@/server/consultations/service";
 import { getCurrentUser } from "@/server/auth/session";
+import { rateLimiter, RATE_LIMIT_CONSULTATION } from "@/server/rate-limit";
 
 export async function POST(request: Request) {
   let payload: unknown;
@@ -25,6 +26,16 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return Response.json({ errors: ["Authentication required"] }, { status: 401 });
+  }
+
+  const consultLimit = rateLimiter.check(`consultation:${user.id}`, RATE_LIMIT_CONSULTATION);
+  if (!consultLimit.allowed) {
+    return Response.json({
+      errors: ["Rate limited"]
+    }, {
+      status: 429,
+      headers: { "Retry-After": String(Math.ceil(consultLimit.retryAfterMs / 1000)) }
+    });
   }
 
   const { agentSlug, requirement } = payload as {

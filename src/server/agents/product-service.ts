@@ -43,7 +43,7 @@ export async function toggleAgentPackageFavorite(input: {
 
 export async function submitAgentPackageReview(input: {
   agentPackageId: string;
-  userId?: string | null;
+  userId: string;
   rating: number;
   title?: string | null;
   body?: string | null;
@@ -52,15 +52,27 @@ export async function submitAgentPackageReview(input: {
     throw new Error("Review rating must be between 1 and 5");
   }
 
-  return store.agentPackageReview.create({
-    data: {
-      agentPackageId: input.agentPackageId,
-      userId: input.userId ?? null,
-      rating: input.rating,
-      title: input.title?.trim() || null,
-      body: input.body?.trim() || null
+  try {
+    return await store.agentPackageReview.create({
+      data: {
+        agentPackageId: input.agentPackageId,
+        userId: input.userId,
+        rating: input.rating,
+        title: input.title?.trim() || null,
+        body: input.body?.trim() || null
+      }
+    });
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      throw new Error("您已评价过此智能体");
     }
-  });
+    throw error;
+  }
 }
 
 export async function upsertAgentPackageImportInstruction(input: {

@@ -5,7 +5,8 @@ import {
   getServiceOrderById,
   markServiceOrderPaid,
   markServiceOrderPaymentCancelled,
-  markServiceOrderPaymentFailed
+  markServiceOrderPaymentFailed,
+  ConcurrentModificationError
 } from "@/server/orders/service";
 import { recordPaymentEvent } from "./ledger";
 import { devPaymentAdapter } from "./dev-adapter";
@@ -131,20 +132,44 @@ export async function applyPaymentEvent(event: NormalizedPaymentEvent) {
 
   let updatedOrder;
   if (event.type === "payment.failed") {
-    updatedOrder = await markServiceOrderPaymentFailed({
-      orderId: event.orderId,
-      paymentReference: event.paymentReference ?? undefined
-    });
+    try {
+      updatedOrder = await markServiceOrderPaymentFailed({
+        orderId: event.orderId,
+        paymentReference: event.paymentReference ?? undefined
+      });
+    } catch (error) {
+      if (error instanceof ConcurrentModificationError) {
+        updatedOrder = await getServiceOrderById(event.orderId);
+        return updatedOrder ?? order;
+      }
+      throw error;
+    }
   } else if (event.type === "payment.cancelled") {
-    updatedOrder = await markServiceOrderPaymentCancelled({
-      orderId: event.orderId,
-      paymentReference: event.paymentReference ?? undefined
-    });
+    try {
+      updatedOrder = await markServiceOrderPaymentCancelled({
+        orderId: event.orderId,
+        paymentReference: event.paymentReference ?? undefined
+      });
+    } catch (error) {
+      if (error instanceof ConcurrentModificationError) {
+        updatedOrder = await getServiceOrderById(event.orderId);
+        return updatedOrder ?? order;
+      }
+      throw error;
+    }
   } else {
-    updatedOrder = await markServiceOrderPaid({
-      orderId: event.orderId,
-      paymentReference: event.paymentReference ?? undefined
-    });
+    try {
+      updatedOrder = await markServiceOrderPaid({
+        orderId: event.orderId,
+        paymentReference: event.paymentReference ?? undefined
+      });
+    } catch (error) {
+      if (error instanceof ConcurrentModificationError) {
+        updatedOrder = await getServiceOrderById(event.orderId);
+        return updatedOrder ?? order;
+      }
+      throw error;
+    }
   }
 
   await recordAuditLog({

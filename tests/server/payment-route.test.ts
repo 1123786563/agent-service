@@ -16,14 +16,21 @@ vi.mock("stripe", () => ({
 }));
 
 vi.mock("@/server/auth/session", () => ({
-  getCurrentUser: vi.fn()
+  getCurrentUser: vi.fn(),
+  requireAdmin: vi.fn()
 }));
 
 vi.mock("@/server/orders/service", () => ({
   getServiceOrderById: vi.fn(),
   markServiceOrderPaid: vi.fn(),
   markServiceOrderPaymentCancelled: vi.fn(),
-  markServiceOrderPaymentFailed: vi.fn()
+  markServiceOrderPaymentFailed: vi.fn(),
+  ConcurrentModificationError: class ConcurrentModificationError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "ConcurrentModificationError";
+    }
+  }
 }));
 
 vi.mock("@/server/payments/ledger", () => ({
