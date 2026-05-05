@@ -5,6 +5,10 @@ import { rateLimiter, RATE_LIMIT_WEBHOOK } from "@/server/rate-limit";
 const CSRF_EXEMPT_PATHS = [
   "/api/payments/webhook",
   "/api/auth/consume",
+  "/api/auth/callback/google",
+  "/api/auth/callback/github",
+  "/api/auth/google",
+  "/api/auth/github",
 ];
 
 export function middleware(request: NextRequest) {
