@@ -1,12 +1,14 @@
 # Hermes-agent Marketplace Phase 1 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Build the Phase 1 Hermes-agent marketplace loop: whitelist creators can upload validated agent ZIP packages, public users can browse detail pages and download published ZIP files.
 
 **Architecture:** Use a single Next.js App Router application with server-side domain modules for auth, ZIP validation, package persistence, and storage. Keep service-consulting, payment, delivery, ratings, recommendations, and Hermes one-click import out of this plan; those belong to later phase plans.
 
 **Tech Stack:** Next.js, TypeScript, Prisma, Postgres, Zod, JSZip, Vitest, Playwright, local filesystem storage for development with a storage interface that can later be backed by S3-compatible object storage.
+
+**Status:** Completed. This plan was originally written as an execution template; the checkboxes below have been reconciled against the current app, migrations, tests, and git history.
 
 ---
 
@@ -119,7 +121,7 @@ Each server module has a single responsibility:
 - Create: `src/app/page.tsx`
 - Create: `src/app/globals.css`
 
-- [ ] **Step 1: Initialize Git metadata**
+- [x] **Step 1: Initialize Git metadata**
 
 Run:
 
@@ -129,7 +131,7 @@ test -d .git || git init
 
 Expected: `.git/` exists after the command.
 
-- [ ] **Step 2: Create the package manifest**
+- [x] **Step 2: Create the package manifest**
 
 Create `package.json`:
 
@@ -181,7 +183,7 @@ Create `package.json`:
 }
 ```
 
-- [ ] **Step 3: Install dependencies**
+- [x] **Step 3: Install dependencies**
 
 Run:
 
@@ -191,7 +193,7 @@ npm install
 
 Expected: `node_modules/` and `package-lock.json` are created.
 
-- [ ] **Step 4: Add core config files**
+- [x] **Step 4: Add core config files**
 
 Create `.gitignore`:
 
@@ -298,7 +300,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 5: Create the first app shell**
+- [x] **Step 5: Create the first app shell**
 
 Create `src/app/layout.tsx`:
 
@@ -467,7 +469,7 @@ h1 {
 }
 ```
 
-- [ ] **Step 6: Verify the shell builds**
+- [x] **Step 6: Verify the shell builds**
 
 Run:
 
@@ -477,7 +479,7 @@ npm run build
 
 Expected: `Compiled successfully` appears and the command exits with status 0.
 
-- [ ] **Step 7: Commit the scaffold**
+- [x] **Step 7: Commit the scaffold**
 
 Run:
 
@@ -498,7 +500,7 @@ Expected: commit succeeds with message `chore: scaffold marketplace app`.
 - Create: `src/server/db.ts`
 - Modify: `.env.example`
 
-- [ ] **Step 1: Write the Prisma schema**
+- [x] **Step 1: Write the Prisma schema**
 
 Create `prisma/schema.prisma`:
 
@@ -614,7 +616,7 @@ model Workflow {
 }
 ```
 
-- [ ] **Step 2: Add Prisma client singleton**
+- [x] **Step 2: Add Prisma client singleton**
 
 Create `src/server/db.ts`:
 
@@ -634,7 +636,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 ```
 
-- [ ] **Step 3: Add seed script for admin and creator whitelist**
+- [x] **Step 3: Add seed script for admin and creator whitelist**
 
 Create `prisma/seed.ts`:
 
@@ -675,7 +677,7 @@ main()
   });
 ```
 
-- [ ] **Step 4: Generate Prisma client**
+- [x] **Step 4: Generate Prisma client**
 
 Run:
 
@@ -685,7 +687,7 @@ npm run prisma:generate
 
 Expected: Prisma Client generated successfully.
 
-- [ ] **Step 5: Run the migration**
+- [x] **Step 5: Run the migration**
 
 Run:
 
@@ -695,7 +697,7 @@ npm run prisma:migrate -- --name init_marketplace
 
 Expected: migration is created under `prisma/migrations/` and applied to the configured Postgres database.
 
-- [ ] **Step 6: Commit database schema**
+- [x] **Step 6: Commit database schema**
 
 Run:
 
@@ -714,7 +716,7 @@ Expected: commit succeeds with message `feat: add marketplace database schema`.
 - Create: `src/server/agents/metadata-schema.ts`
 - Create: `tests/server/metadata-schema.test.ts`
 
-- [ ] **Step 1: Write failing metadata tests**
+- [x] **Step 1: Write failing metadata tests**
 
 Create `tests/server/metadata-schema.test.ts`:
 
@@ -792,7 +794,7 @@ describe("parseAgentMetadata", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run:
 
@@ -802,7 +804,7 @@ npm run test -- tests/server/metadata-schema.test.ts
 
 Expected: FAIL because `@/server/agents/metadata-schema` does not exist.
 
-- [ ] **Step 3: Implement metadata parsing**
+- [x] **Step 3: Implement metadata parsing**
 
 Create `src/server/agents/metadata-schema.ts`:
 
@@ -876,7 +878,7 @@ export function parseAgentMetadata(input: unknown): AgentMetadata {
 }
 ```
 
-- [ ] **Step 4: Verify metadata tests pass**
+- [x] **Step 4: Verify metadata tests pass**
 
 Run:
 
@@ -886,7 +888,7 @@ npm run test -- tests/server/metadata-schema.test.ts
 
 Expected: PASS with 3 tests.
 
-- [ ] **Step 5: Commit metadata schema**
+- [x] **Step 5: Commit metadata schema**
 
 Run:
 
@@ -906,7 +908,7 @@ Expected: commit succeeds with message `feat: validate agent metadata`.
 - Create: `src/test/fixtures.ts`
 - Create: `tests/server/zip-validator.test.ts`
 
-- [ ] **Step 1: Write failing ZIP validation tests**
+- [x] **Step 1: Write failing ZIP validation tests**
 
 Create `src/test/fixtures.ts`:
 
@@ -1013,7 +1015,7 @@ describe("validateAgentZip", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run:
 
@@ -1023,7 +1025,7 @@ npm run test -- tests/server/zip-validator.test.ts
 
 Expected: FAIL because `@/server/agents/zip-validator` does not exist.
 
-- [ ] **Step 3: Implement ZIP validation**
+- [x] **Step 3: Implement ZIP validation**
 
 Create `src/server/agents/zip-validator.ts`:
 
@@ -1143,7 +1145,7 @@ export async function validateAgentZip(buffer: Buffer): Promise<ZipValidationRes
 }
 ```
 
-- [ ] **Step 4: Verify ZIP validation tests pass**
+- [x] **Step 4: Verify ZIP validation tests pass**
 
 Run:
 
@@ -1153,7 +1155,7 @@ npm run test -- tests/server/zip-validator.test.ts tests/server/metadata-schema.
 
 Expected: PASS with all metadata and ZIP validation tests.
 
-- [ ] **Step 5: Commit ZIP validation**
+- [x] **Step 5: Commit ZIP validation**
 
 Run:
 
@@ -1177,7 +1179,7 @@ Expected: commit succeeds with message `feat: validate uploaded agent zip packag
 - Create: `src/app/api/auth/request-link/route.ts`
 - Create: `src/app/api/auth/consume/route.ts`
 
-- [ ] **Step 1: Write session utility tests**
+- [x] **Step 1: Write session utility tests**
 
 Create `tests/server/session.test.ts`:
 
@@ -1200,7 +1202,7 @@ describe("session utilities", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run:
 
@@ -1210,7 +1212,7 @@ npm run test -- tests/server/session.test.ts
 
 Expected: FAIL because `@/server/auth/session` does not exist.
 
-- [ ] **Step 3: Implement session helpers**
+- [x] **Step 3: Implement session helpers**
 
 Create `src/server/auth/session.ts`:
 
@@ -1299,7 +1301,7 @@ export async function requireAdmin() {
 }
 ```
 
-- [ ] **Step 4: Implement magic-link token generation and dev mailer**
+- [x] **Step 4: Implement magic-link token generation and dev mailer**
 
 Create `src/server/mail/dev-mailer.ts`:
 
@@ -1377,7 +1379,7 @@ export async function consumeMagicLink(rawToken: string) {
 }
 ```
 
-- [ ] **Step 5: Add login page and auth routes**
+- [x] **Step 5: Add login page and auth routes**
 
 Create `src/app/login/page.tsx`:
 
@@ -1432,7 +1434,7 @@ export async function GET(request: Request) {
 }
 ```
 
-- [ ] **Step 6: Run auth tests**
+- [x] **Step 6: Run auth tests**
 
 Run:
 
@@ -1442,7 +1444,7 @@ npm run test -- tests/server/session.test.ts
 
 Expected: PASS with 2 tests.
 
-- [ ] **Step 7: Commit auth**
+- [x] **Step 7: Commit auth**
 
 Run:
 
@@ -1461,7 +1463,7 @@ Expected: commit succeeds with message `feat: add magic link authentication`.
 - Create: `src/server/storage/local-storage.ts`
 - Create: `src/server/agents/package-service.ts`
 
-- [ ] **Step 1: Implement local storage**
+- [x] **Step 1: Implement local storage**
 
 Create `src/server/storage/local-storage.ts`:
 
@@ -1498,7 +1500,7 @@ export async function readStoredZip(fileName: string) {
 }
 ```
 
-- [ ] **Step 2: Implement package persistence service**
+- [x] **Step 2: Implement package persistence service**
 
 Create `src/server/agents/package-service.ts`:
 
@@ -1594,7 +1596,7 @@ export async function getPublishedAgentPackageBySlug(slug: string) {
 }
 ```
 
-- [ ] **Step 3: Run type check through build**
+- [x] **Step 3: Run type check through build**
 
 Run:
 
@@ -1604,7 +1606,7 @@ npm run build
 
 Expected: build exits with status 0.
 
-- [ ] **Step 4: Commit storage and package service**
+- [x] **Step 4: Commit storage and package service**
 
 Run:
 
@@ -1627,7 +1629,7 @@ Expected: commit succeeds with message `feat: persist validated agent packages`.
 - Create: `src/app/api/creator/agents/route.ts`
 - Modify: `src/app/globals.css`
 
-- [ ] **Step 1: Create reusable creator UI components**
+- [x] **Step 1: Create reusable creator UI components**
 
 Create `src/components/package-status-pill.tsx`:
 
@@ -1663,7 +1665,7 @@ export function UploadAgentForm() {
 }
 ```
 
-- [ ] **Step 2: Add creator pages**
+- [x] **Step 2: Add creator pages**
 
 Create `src/app/creator/page.tsx`:
 
@@ -1736,7 +1738,7 @@ export default function NewAgentPage() {
 }
 ```
 
-- [ ] **Step 3: Add creator upload route**
+- [x] **Step 3: Add creator upload route**
 
 Create `src/app/api/creator/agents/route.ts`:
 
@@ -1769,7 +1771,7 @@ export async function POST(request: Request) {
 }
 ```
 
-- [ ] **Step 4: Add form and grid CSS**
+- [x] **Step 4: Add form and grid CSS**
 
 Append to `src/app/globals.css`:
 
@@ -1823,7 +1825,7 @@ Append to `src/app/globals.css`:
 }
 ```
 
-- [ ] **Step 5: Build and manually verify whitelist guard**
+- [x] **Step 5: Build and manually verify whitelist guard**
 
 Run:
 
@@ -1833,7 +1835,7 @@ npm run build
 
 Expected: build exits with status 0. Visiting `/creator` without a session redirects to `/login`.
 
-- [ ] **Step 6: Commit creator upload flow**
+- [x] **Step 6: Commit creator upload flow**
 
 Run:
 
@@ -1856,7 +1858,7 @@ Expected: commit succeeds with message `feat: add creator zip upload flow`.
 - Create: `src/app/api/agents/[slug]/download/route.ts`
 - Modify: `src/app/globals.css`
 
-- [ ] **Step 1: Add marketplace components**
+- [x] **Step 1: Add marketplace components**
 
 Create `src/components/agent-card.tsx`:
 
@@ -1949,7 +1951,7 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
 }
 ```
 
-- [ ] **Step 2: Add public list and detail pages**
+- [x] **Step 2: Add public list and detail pages**
 
 Create `src/app/agents/page.tsx`:
 
@@ -1993,7 +1995,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ sl
 }
 ```
 
-- [ ] **Step 3: Add download route**
+- [x] **Step 3: Add download route**
 
 Create `src/app/api/agents/[slug]/download/route.ts`:
 
@@ -2022,7 +2024,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 }
 ```
 
-- [ ] **Step 4: Add marketplace CSS**
+- [x] **Step 4: Add marketplace CSS**
 
 Append to `src/app/globals.css`:
 
@@ -2070,7 +2072,7 @@ code {
 }
 ```
 
-- [ ] **Step 5: Build and verify public pages compile**
+- [x] **Step 5: Build and verify public pages compile**
 
 Run:
 
@@ -2080,7 +2082,7 @@ npm run build
 
 Expected: build exits with status 0.
 
-- [ ] **Step 6: Commit public marketplace**
+- [x] **Step 6: Commit public marketplace**
 
 Run:
 
@@ -2100,7 +2102,7 @@ Expected: commit succeeds with message `feat: add public marketplace pages`.
 - Create: `src/app/admin/whitelist/page.tsx`
 - Create: `src/app/admin/actions.ts`
 
-- [ ] **Step 1: Add admin server actions**
+- [x] **Step 1: Add admin server actions**
 
 Create `src/app/admin/actions.ts`:
 
@@ -2150,7 +2152,7 @@ export async function archiveAgentPackage(formData: FormData) {
 }
 ```
 
-- [ ] **Step 2: Add admin overview page**
+- [x] **Step 2: Add admin overview page**
 
 Create `src/app/admin/page.tsx`:
 
@@ -2243,7 +2245,7 @@ export default async function WhitelistPage() {
 }
 ```
 
-- [ ] **Step 3: Build and verify admin pages compile**
+- [x] **Step 3: Build and verify admin pages compile**
 
 Run:
 
@@ -2253,7 +2255,7 @@ npm run build
 
 Expected: build exits with status 0.
 
-- [ ] **Step 4: Commit admin controls**
+- [x] **Step 4: Commit admin controls**
 
 Run:
 
@@ -2273,7 +2275,7 @@ Expected: commit succeeds with message `feat: add admin whitelist controls`.
 - Create: `docs/phase-1-operator-guide.md`
 - Modify: `package.json`
 
-- [ ] **Step 1: Add Playwright smoke test**
+- [x] **Step 1: Add Playwright smoke test**
 
 Create `tests/e2e/marketplace.spec.ts`:
 
@@ -2294,7 +2296,7 @@ test("homepage links to marketplace and creator login path", async ({ page }) =>
 });
 ```
 
-- [ ] **Step 2: Add operator guide**
+- [x] **Step 2: Add operator guide**
 
 Create `docs/phase-1-operator-guide.md`:
 
@@ -2344,7 +2346,7 @@ In development, login links are written to `.data/dev-email-outbox.jsonl`.
 - Review packages with script risk flags before promoting creators beyond the initial whitelist.
 ```
 
-- [ ] **Step 3: Run unit tests**
+- [x] **Step 3: Run unit tests**
 
 Run:
 
@@ -2354,7 +2356,7 @@ npm run test
 
 Expected: all Vitest tests pass.
 
-- [ ] **Step 4: Run production build**
+- [x] **Step 4: Run production build**
 
 Run:
 
@@ -2364,7 +2366,7 @@ npm run build
 
 Expected: build exits with status 0.
 
-- [ ] **Step 5: Run E2E smoke test**
+- [x] **Step 5: Run E2E smoke test**
 
 Run:
 
@@ -2374,7 +2376,7 @@ npm run test:e2e
 
 Expected: Playwright reports 1 passed test.
 
-- [ ] **Step 6: Commit tests and docs**
+- [x] **Step 6: Commit tests and docs**
 
 Run:
 

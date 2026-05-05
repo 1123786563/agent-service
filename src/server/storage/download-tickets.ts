@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { prisma } from "@/server/db";
 
 export type DownloadTicketAudience = "agent-download" | "delivery-download";
 export type DownloadTicketResourceType = "agent_zip" | "delivery_asset";
@@ -15,6 +16,7 @@ export type DownloadTicketPayload = {
   resourceVersion: string;
   jti: string;
   keyId: string;
+  singleUse?: boolean;
   expiresAt: string;
 };
 
@@ -27,11 +29,22 @@ function getActiveKeyId() {
 }
 
 function getSecretForKeyId(keyId: string) {
-  if (keyId !== getActiveKeyId()) {
-    throw new Error("Unknown download ticket key");
+  const activeKeyId = getActiveKeyId();
+  if (keyId === activeKeyId) {
+    return process.env.DOWNLOAD_TICKET_SECRET?.trim() || DEFAULT_SECRET;
   }
 
-  return process.env.DOWNLOAD_TICKET_SECRET?.trim() || DEFAULT_SECRET;
+  const previousKeyId = process.env.DOWNLOAD_TICKET_PREVIOUS_KEY_ID?.trim();
+  if (previousKeyId && keyId === previousKeyId) {
+    const previousSecret = process.env.DOWNLOAD_TICKET_PREVIOUS_SECRET?.trim();
+    if (!previousSecret) {
+      throw new Error("DOWNLOAD_TICKET_PREVIOUS_SECRET is required for previous ticket key");
+    }
+
+    return previousSecret;
+  }
+
+  throw new Error("Unknown download ticket key");
 }
 
 function signPayload(serializedPayload: string, keyId: string) {
@@ -43,6 +56,7 @@ export function createDownloadTicket(
   options: {
     ttlSeconds?: number;
     now?: Date;
+    singleUse?: boolean;
   } = {}
 ) {
   const keyId = getActiveKeyId();
@@ -52,7 +66,8 @@ export function createDownloadTicket(
     ...payload,
     expiresAt: expiresAt.toISOString(),
     jti: crypto.randomUUID(),
-    keyId
+    keyId,
+    singleUse: options.singleUse ?? false
   };
   const serializedPayload = JSON.stringify(completePayload);
   const encodedPayload = Buffer.from(serializedPayload, "utf8").toString("base64url");
@@ -93,6 +108,62 @@ export function verifyDownloadTicket(
 
   if (payload.actorId && options.actorId && payload.actorId !== options.actorId) {
     throw new Error("Download ticket actor mismatch");
+  }
+
+  return payload;
+}
+
+type DownloadTicketUseStore = {
+  create(args: {
+    data: {
+      jti: string;
+      keyId: string;
+      audience: string;
+      resourceType: string;
+      resourceId: string;
+      actorId?: string | null;
+      sessionId?: string | null;
+      expiresAt: Date;
+    };
+  }): Promise<unknown>;
+};
+
+const defaultTicketUseStore: DownloadTicketUseStore = {
+  create(args) {
+    return prisma.downloadTicketUse.create(args);
+  }
+};
+
+export async function verifyAndConsumeDownloadTicket(
+  ticket: string,
+  options: {
+    audience: DownloadTicketAudience;
+    now?: Date;
+    actorId?: string | null;
+  },
+  store: DownloadTicketUseStore = defaultTicketUseStore
+) {
+  const payload = verifyDownloadTicket(ticket, options);
+
+  if (!payload.singleUse) {
+    return payload;
+  }
+
+  try {
+    await store.create({
+      data: {
+        jti: payload.jti,
+        keyId: payload.keyId,
+        audience: payload.audience,
+        resourceType: payload.resourceType,
+        resourceId: payload.resourceId,
+        actorId: payload.actorId ?? null,
+        sessionId: payload.sessionId ?? null,
+        expiresAt: new Date(payload.expiresAt)
+      }
+    });
+  } catch {
+    throw new Error("Download ticket already used");
   }
 
   return payload;

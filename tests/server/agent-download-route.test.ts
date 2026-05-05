@@ -16,7 +16,7 @@ vi.mock("@/server/storage/download-authorization", () => ({
 
 vi.mock("@/server/storage/download-tickets", () => ({
   createDownloadTicket: vi.fn(() => "signed-ticket"),
-  verifyDownloadTicket: vi.fn()
+  verifyAndConsumeDownloadTicket: vi.fn()
 }));
 
 vi.mock("@/server/storage/local-storage", () => ({
@@ -34,7 +34,7 @@ import {
 import { recordAuditLog } from "@/server/audit/service";
 import { authorizeAgentZipDownload } from "@/server/storage/download-authorization";
 import { readStoredZip } from "@/server/storage/local-storage";
-import { createDownloadTicket, verifyDownloadTicket } from "@/server/storage/download-tickets";
+import { createDownloadTicket, verifyAndConsumeDownloadTicket } from "@/server/storage/download-tickets";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -58,7 +58,7 @@ describe("agent download route", () => {
     });
 
     expect(createDownloadTicket).toHaveBeenCalled();
-    expect(verifyDownloadTicket).toHaveBeenCalledWith("signed-ticket", {
+    expect(verifyAndConsumeDownloadTicket).toHaveBeenCalledWith("signed-ticket", {
       audience: "agent-download"
     });
     expect(incrementPublishedAgentPackageDownloadCount).toHaveBeenCalledWith("research-assistant-1-0-0");

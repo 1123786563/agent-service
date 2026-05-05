@@ -45,6 +45,8 @@ ${APP_URL}/api/payments/webhook
    - `checkout.session.expired`
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
+   - `refund.updated`
+   - `refund.failed`
 5. Verify a test-mode payment from `/account/orders` and confirm the order only moves to `IN_PROGRESS` after the webhook is processed.
 6. Do not treat the Stripe success redirect as proof of payment; it only returns the buyer to their order page.
 
@@ -58,6 +60,7 @@ ${APP_URL}/api/payments/webhook
    - `部分退款并取消`
 3. Refundable no-work-start cases depend on `workStartedAt`. Admin dispute refunds can override this only as an explicit arbitration action.
 4. Check dispute records and refund records in the database when reconciling a cancelled paid order.
+5. Refund webhooks update existing refund records by provider refund id or provider event id. Replayed refund events are treated as already processed.
 
 ## Settlement Operations
 
@@ -66,10 +69,13 @@ ${APP_URL}/api/payments/webhook
 3. In `待出款结算批次`, fill `出款参考号` and click `标记已出款` only after the real payout completes.
 4. Open `/creator/orders` to verify the creator now sees `已结算` for the completed order.
 5. Open `/admin/analytics` to review settled order count and unsettled revenue totals.
+6. If a refund lands before payout, the pending settlement line receives a refund deduction.
+7. If a refund lands after a line is locked or paid out, the platform creates a negative settlement adjustment that is applied to a later submitted batch.
 
 ## Current Limits
 
 - Storage still uses the local provider by default unless `STORAGE_PROVIDER=s3-compatible` and the Phase 6 cutover steps are complete.
 - Dev payment remains the active runtime provider unless `PAYMENT_PROVIDER=stripe` and Stripe credentials are configured.
-- Refund execution now has admin UI and provider adapter hooks, but production Stripe refunds still require test-mode and live-mode reconciliation before rollout.
+- Refund execution now has admin UI, provider adapter hooks, and Stripe refund webhook reconciliation. Production rollout still requires test-mode and live-mode operational reconciliation.
 - Settlement payout is still an operator-confirmed workflow, not an automatic disbursement integration.
+- Ratings, favorites, recommendation scoring, and import instruction records have service-layer support; public interaction UI can be expanded separately.

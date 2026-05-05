@@ -9,7 +9,14 @@ const prismaMock = vi.hoisted(() => ({
   settlementLine: {
     upsert: vi.fn(),
     findMany: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
     updateMany: vi.fn()
+  },
+  settlementAdjustment: {
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    create: vi.fn()
   },
   settlementBatch: {
     create: vi.fn(),
@@ -23,7 +30,12 @@ vi.mock("@/server/db", () => ({
   prisma: prismaMock
 }));
 
-import { buildSettlementLine, markSettlementBatchPaidOut, submitSettlementBatch } from "@/server/settlements/service";
+import {
+  applySettlementRefundAdjustment,
+  buildSettlementLine,
+  markSettlementBatchPaidOut,
+  submitSettlementBatch
+} from "@/server/settlements/service";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -37,7 +49,9 @@ describe("settlement service", () => {
       priceCents: 2500,
       currency: "USD",
       status: ServiceOrderStatus.COMPLETED,
-      paymentStatus: PaymentStatus.PAID
+      paymentStatus: PaymentStatus.PAID,
+      disputes: [],
+      refunds: []
     });
     prismaMock.settlementLine.upsert.mockResolvedValue({
       id: "line-1",
@@ -60,17 +74,24 @@ describe("settlement service", () => {
         currency: "USD"
       }
     ]);
+    prismaMock.settlementAdjustment.findMany.mockResolvedValue([]);
     prismaMock.$transaction.mockImplementation(async (callback) =>
       callback({
         settlementBatch: {
           create: vi.fn().mockResolvedValue({
             id: "batch-1",
             status: SettlementBatchStatus.SUBMITTED,
-            lineSnapshot: [{ id: "line-1" }]
+            lineSnapshot: {
+              lines: [{ id: "line-1" }],
+              adjustments: []
+            }
           })
         },
         settlementLine: {
           updateMany: vi.fn().mockResolvedValue({ count: 1 })
+        },
+        settlementAdjustment: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 })
         }
       })
     );
@@ -81,7 +102,58 @@ describe("settlement service", () => {
     });
 
     expect(batch.status).toBe(SettlementBatchStatus.SUBMITTED);
-    expect(batch.lineSnapshot).toEqual([{ id: "line-1" }]);
+    expect(batch.lineSnapshot).toEqual({
+      lines: [{ id: "line-1" }],
+      adjustments: []
+    });
+  });
+
+  it("deducts refunds from pending settlement lines", async () => {
+    prismaMock.settlementLine.findUnique.mockResolvedValue({
+      id: "line-1",
+      orderId: "order-1",
+      providerId: "creator-1",
+      currency: "USD",
+      status: SettlementLineStatus.PENDING
+    });
+    prismaMock.settlementLine.update.mockResolvedValue({
+      id: "line-1",
+      refundDeductionAmount: 500
+    });
+
+    const result = await applySettlementRefundAdjustment({
+      orderId: "order-1",
+      amountMinor: 500
+    });
+
+    expect(result).toMatchObject({
+      refundDeductionAmount: 500
+    });
+    expect(prismaMock.settlementAdjustment.create).not.toHaveBeenCalled();
+  });
+
+  it("creates negative adjustments when refunds arrive after settlement lock", async () => {
+    prismaMock.settlementLine.findUnique.mockResolvedValue({
+      id: "line-2",
+      orderId: "order-2",
+      providerId: "creator-1",
+      currency: "USD",
+      status: SettlementLineStatus.SETTLED
+    });
+    prismaMock.settlementAdjustment.create.mockResolvedValue({
+      id: "adjustment-1",
+      amountMinor: -700
+    });
+
+    const result = await applySettlementRefundAdjustment({
+      orderId: "order-2",
+      amountMinor: 700,
+      reason: "refund_after_settlement"
+    });
+
+    expect(result).toMatchObject({
+      amountMinor: -700
+    });
   });
 
   it("marks submitted batches as paid out and projects settlement fields to orders", async () => {

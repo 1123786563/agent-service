@@ -15,7 +15,7 @@ vi.mock("@/server/storage/download-authorization", () => ({
 
 vi.mock("@/server/storage/download-tickets", () => ({
   createDownloadTicket: vi.fn(() => "delivery-ticket"),
-  verifyDownloadTicket: vi.fn()
+  verifyAndConsumeDownloadTicket: vi.fn()
 }));
 
 vi.mock("@/server/audit/service", () => ({
@@ -27,7 +27,7 @@ import { recordAuditLog } from "@/server/audit/service";
 import { getCurrentSession } from "@/server/auth/session";
 import { getDeliveryForDownload } from "@/server/deliveries/service";
 import { authorizeDeliveryAssetDownload } from "@/server/storage/download-authorization";
-import { createDownloadTicket, verifyDownloadTicket } from "@/server/storage/download-tickets";
+import { createDownloadTicket, verifyAndConsumeDownloadTicket } from "@/server/storage/download-tickets";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -75,7 +75,7 @@ describe("delivery download route", () => {
     });
 
     expect(createDownloadTicket).toHaveBeenCalled();
-    expect(verifyDownloadTicket).toHaveBeenCalledWith("delivery-ticket", {
+    expect(verifyAndConsumeDownloadTicket).toHaveBeenCalledWith("delivery-ticket", {
       audience: "delivery-download",
       actorId: "buyer-1"
     });

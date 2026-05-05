@@ -2,7 +2,7 @@ import { recordAuditLog } from "@/server/audit/service";
 import { getCurrentSession } from "@/server/auth/session";
 import { getDeliveryForDownload } from "@/server/deliveries/service";
 import { authorizeDeliveryAssetDownload } from "@/server/storage/download-authorization";
-import { createDownloadTicket, verifyDownloadTicket } from "@/server/storage/download-tickets";
+import { createDownloadTicket, verifyAndConsumeDownloadTicket } from "@/server/storage/download-tickets";
 
 export async function GET(
   request: Request,
@@ -36,8 +36,10 @@ export async function GET(
       sessionId: session.id,
       audience: "delivery-download",
       resourceVersion: authorization.resourceVersion
+    }, {
+      singleUse: true
     });
-    verifyDownloadTicket(ticket, {
+    await verifyAndConsumeDownloadTicket(ticket, {
       audience: "delivery-download",
       actorId: user.id
     });

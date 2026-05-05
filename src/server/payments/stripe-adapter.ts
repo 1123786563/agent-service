@@ -7,7 +7,7 @@ import type {
   RefundPaymentInput,
   RefundPaymentResult
 } from "./adapter";
-import type { NormalizedPaymentEvent } from "./webhook-events";
+import type { NormalizedProviderEvent } from "./webhook-events";
 
 type StripeClient = Pick<Stripe, "checkout" | "refunds" | "webhooks">;
 
@@ -130,7 +130,7 @@ export class StripePaymentProvider implements PaymentProvider {
     };
   }
 
-  async parseWebhook(request: Request): Promise<NormalizedPaymentEvent> {
+  async parseWebhook(request: Request): Promise<NormalizedProviderEvent> {
     const signature = request.headers.get("stripe-signature");
     if (!signature) {
       throw new Error("Stripe-Signature header is required");
@@ -174,7 +174,7 @@ export class StripePaymentProvider implements PaymentProvider {
     };
   }
 
-  private normalizeWebhookEvent(event: Stripe.Event): NormalizedPaymentEvent {
+  private normalizeWebhookEvent(event: Stripe.Event): NormalizedProviderEvent {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const orderId = assertMetadataOrderId(getMetadataValue(session.metadata, "orderId") ?? session.client_reference_id);
@@ -249,6 +249,28 @@ export class StripePaymentProvider implements PaymentProvider {
         amountMinor: paymentIntent.amount,
         currency: paymentIntent.currency.toUpperCase(),
         failureReason: paymentIntent.last_payment_error?.message ?? paymentIntent.last_payment_error?.code ?? null,
+        idempotencyKey: event.request?.idempotency_key ?? null,
+        rawPayload: event
+      };
+    }
+
+    if (event.type === "refund.updated" || event.type === "refund.failed") {
+      const refund = event.data.object as Stripe.Refund;
+      const orderId = assertMetadataOrderId(getMetadataValue(refund.metadata, "orderId"));
+      const paymentReference = getMetadataValue(refund.metadata, "paymentReference") ?? getStringId(refund.payment_intent);
+      const isFailed = event.type === "refund.failed" || refund.status === "failed";
+
+      return {
+        type: isFailed ? "refund.failed" : "refund.succeeded",
+        provider: this.provider,
+        providerEventId: event.id,
+        orderId,
+        paymentReference,
+        providerPaymentId: getStringId(refund.payment_intent),
+        providerRefundId: refund.id,
+        amountMinor: refund.amount,
+        currency: refund.currency.toUpperCase(),
+        failureReason: refund.failure_reason ?? null,
         idempotencyKey: event.request?.idempotency_key ?? null,
         rawPayload: event
       };

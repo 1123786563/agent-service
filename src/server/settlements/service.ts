@@ -1,5 +1,15 @@
-import { PaymentStatus, ServiceOrderStatus, SettlementBatchStatus, SettlementLineStatus } from "@prisma/client";
+import {
+  PaymentStatus,
+  DisputeStatus,
+  RefundStatus,
+  ServiceOrderStatus,
+  SettlementAdjustmentStatus,
+  SettlementBatchStatus,
+  SettlementLineStatus
+} from "@prisma/client";
 import { prisma } from "@/server/db";
+
+type SettlementTx = Pick<typeof prisma, "settlementLine" | "settlementAdjustment">;
 
 export async function buildSettlementLine(orderId: string) {
   const normalizedOrderId = orderId.trim();
@@ -15,7 +25,27 @@ export async function buildSettlementLine(orderId: string) {
       priceCents: true,
       currency: true,
       status: true,
-      paymentStatus: true
+      paymentStatus: true,
+      disputes: {
+        where: {
+          status: {
+            in: [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW]
+          }
+        },
+        select: {
+          id: true
+        },
+        take: 1
+      },
+      refunds: {
+        where: {
+          status: RefundStatus.PENDING
+        },
+        select: {
+          id: true
+        },
+        take: 1
+      }
     }
   });
 
@@ -25,6 +55,10 @@ export async function buildSettlementLine(orderId: string) {
 
   if (order.status !== ServiceOrderStatus.COMPLETED || order.paymentStatus !== PaymentStatus.PAID) {
     throw new Error("Service order is not eligible for settlement");
+  }
+
+  if (order.disputes.length > 0 || order.refunds.length > 0) {
+    throw new Error("Service order has open dispute or pending refund");
   }
 
   return prisma.settlementLine.upsert({
@@ -78,16 +112,31 @@ export async function submitSettlementBatch(input: {
     throw new Error("Settlement batch must contain one currency");
   }
 
+  const adjustments = await prisma.settlementAdjustment.findMany({
+    where: {
+      providerId,
+      currency,
+      status: SettlementAdjustmentStatus.PENDING
+    },
+    orderBy: {
+      createdAt: "asc"
+    }
+  });
+  const adjustmentTotalMinor = adjustments.reduce((sum, adjustment) => sum + adjustment.amountMinor, 0);
+
   return prisma.$transaction(async (tx) => {
     const batch = await tx.settlementBatch.create({
       data: {
         providerId,
-        totalAmountMinor,
+        totalAmountMinor: totalAmountMinor + adjustmentTotalMinor,
         currency,
         status: SettlementBatchStatus.SUBMITTED,
         payoutReference: input.payoutReference?.trim() || null,
         submittedAt: new Date(),
-        lineSnapshot: lines
+        lineSnapshot: {
+          lines,
+          adjustments
+        }
       }
     });
 
@@ -104,7 +153,69 @@ export async function submitSettlementBatch(input: {
       }
     });
 
+    if (adjustments.length > 0) {
+      await tx.settlementAdjustment.updateMany({
+        where: {
+          id: {
+            in: adjustments.map((adjustment) => adjustment.id)
+          }
+        },
+        data: {
+          status: SettlementAdjustmentStatus.APPLIED,
+          appliedAt: new Date(),
+          settlementBatchId: batch.id
+        }
+      });
+    }
+
     return batch;
+  });
+}
+
+export async function applySettlementRefundAdjustment(input: {
+  orderId: string;
+  amountMinor: number;
+  reason?: string | null;
+}, tx: SettlementTx = prisma) {
+  const line = await tx.settlementLine.findUnique({
+    where: {
+      orderId: input.orderId
+    },
+    select: {
+      id: true,
+      orderId: true,
+      providerId: true,
+      currency: true,
+      status: true
+    }
+  });
+
+  if (!line) {
+    return null;
+  }
+
+  if (line.status === SettlementLineStatus.PENDING) {
+    return tx.settlementLine.update({
+      where: {
+        id: line.id
+      },
+      data: {
+        refundDeductionAmount: {
+          increment: input.amountMinor
+        }
+      }
+    });
+  }
+
+  return tx.settlementAdjustment.create({
+    data: {
+      providerId: line.providerId,
+      orderId: line.orderId,
+      sourceSettlementLineId: line.id,
+      amountMinor: -Math.abs(input.amountMinor),
+      currency: line.currency,
+      reason: input.reason?.trim() || "refund_after_settlement"
+    }
   });
 }
 

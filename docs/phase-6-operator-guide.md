@@ -23,6 +23,17 @@ Keep these existing values:
 - `DELIVERY_UPLOAD_DIR`
 - `DOWNLOAD_TICKET_SECRET`
 - `DOWNLOAD_TICKET_ACTIVE_KEY_ID`
+- `DOWNLOAD_TICKET_PREVIOUS_KEY_ID` (optional during rotation)
+- `DOWNLOAD_TICKET_PREVIOUS_SECRET` (required when `DOWNLOAD_TICKET_PREVIOUS_KEY_ID` is set)
+
+## Download Ticket Rotation
+
+1. Set the new `DOWNLOAD_TICKET_ACTIVE_KEY_ID` and `DOWNLOAD_TICKET_SECRET`.
+2. Move the old key id and secret to `DOWNLOAD_TICKET_PREVIOUS_KEY_ID` and `DOWNLOAD_TICKET_PREVIOUS_SECRET`.
+3. Keep the previous key configured until all tickets signed before rotation have expired.
+4. Remove the previous key values after the rotation window.
+
+Delivery download tickets are single-use and are recorded in `DownloadTicketUse`. Public ZIP download tickets remain reusable within their short TTL because they protect public assets.
 
 ## Cutover Sequence
 

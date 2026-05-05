@@ -4,7 +4,7 @@ import {
 } from "@/server/agents/package-service";
 import { recordAuditLog } from "@/server/audit/service";
 import { authorizeAgentZipDownload } from "@/server/storage/download-authorization";
-import { createDownloadTicket, verifyDownloadTicket } from "@/server/storage/download-tickets";
+import { createDownloadTicket, verifyAndConsumeDownloadTicket } from "@/server/storage/download-tickets";
 import { readStoredZip } from "@/server/storage/local-storage";
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     audience: "agent-download",
     resourceVersion: authorization.resourceVersion
   });
-  verifyDownloadTicket(ticket, { audience: "agent-download" });
+  await verifyAndConsumeDownloadTicket(ticket, { audience: "agent-download" });
 
   await incrementPublishedAgentPackageDownloadCount(slug);
   const buffer = await readStoredZip(authorization.fileName);

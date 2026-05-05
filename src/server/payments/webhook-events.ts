@@ -15,6 +15,23 @@ export type NormalizedPaymentEvent = {
   rawPayload: unknown;
 };
 
+export type NormalizedRefundEvent = {
+  type: "refund.succeeded" | "refund.failed";
+  provider: string;
+  providerEventId: string;
+  orderId: string;
+  paymentReference?: string | null;
+  providerPaymentId?: string | null;
+  providerRefundId: string;
+  amountMinor: number;
+  currency: string;
+  failureReason?: string | null;
+  idempotencyKey?: string | null;
+  rawPayload: unknown;
+};
+
+export type NormalizedProviderEvent = NormalizedPaymentEvent | NormalizedRefundEvent;
+
 export function paymentStatusFromEventType(type: NormalizedPaymentEvent["type"]) {
   switch (type) {
     case "payment.succeeded":

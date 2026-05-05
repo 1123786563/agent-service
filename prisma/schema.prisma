@@ -93,6 +93,11 @@ enum SettlementBatchStatus {
   FAILED
 }
 
+enum SettlementAdjustmentStatus {
+  PENDING
+  APPLIED
+}
+
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -102,6 +107,9 @@ model User {
   updatedAt       DateTime        @updatedAt
 
   packages        AgentPackage[]
+  favorites       AgentPackageFavorite[]
+  reviews         AgentPackageReview[]
+  importInstructions AgentPackageImportInstruction[]
   sessions        Session[]
   magicLinkTokens MagicLinkToken[]
   buyerConsultations Consultation[] @relation("BuyerConsultations")
@@ -114,6 +122,7 @@ model User {
   requestedRefunds Refund[]        @relation("RequestedRefunds")
   settlementLines  SettlementLine[] @relation("ProviderSettlementLines")
   settlementBatches SettlementBatch[] @relation("ProviderSettlementBatches")
+  settlementAdjustments SettlementAdjustment[]
 }
 
 model MagicLinkToken {
@@ -171,9 +180,74 @@ model AgentPackage {
   skills           Skill[]
   workflows        Workflow[]
   consultations    Consultation[]
+  favorites        AgentPackageFavorite[]
+  reviews          AgentPackageReview[]
+  importInstructions AgentPackageImportInstruction[]
 
   @@index([ownerId, createdAt])
   @@index([status, publishedAt])
+}
+
+model AgentPackageFavorite {
+  id             String       @id @default(cuid())
+  agentPackageId String
+  userId         String
+  createdAt      DateTime     @default(now())
+
+  agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([agentPackageId, userId])
+  @@index([userId, createdAt])
+}
+
+model AgentPackageReview {
+  id             String       @id @default(cuid())
+  agentPackageId String
+  userId         String?
+  rating         Int
+  title          String?
+  body           String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([agentPackageId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model AgentPackageImportInstruction {
+  id             String       @id @default(cuid())
+  agentPackageId String       @unique
+  createdByUserId String?
+  cliCommand     String
+  oneClickUrl    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  agentPackage   AgentPackage @relation(fields: [agentPackageId], references: [id], onDelete: Cascade)
+  createdBy      User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([agentPackageId])
+  @@index([createdByUserId, createdAt])
+}
+
+model DownloadTicketUse {
+  id           String   @id @default(cuid())
+  jti          String   @unique
+  keyId        String
+  audience     String
+  resourceType String
+  resourceId   String
+  actorId      String?
+  sessionId    String?
+  usedAt       DateTime @default(now())
+  expiresAt    DateTime
+
+  @@index([resourceType, resourceId, usedAt])
+  @@index([actorId, usedAt])
 }
 
 model Skill {
@@ -251,6 +325,7 @@ model ServiceOrder {
   disputes         Dispute[]
   refunds          Refund[]
   settlementLine   SettlementLine?
+  settlementAdjustments SettlementAdjustment[]
 
   @@index([consultationId])
   @@index([providerId, createdAt])
@@ -377,7 +452,7 @@ model Refund {
   currency          String
   status            RefundStatus @default(PENDING)
   providerRefundId  String?
-  providerEventId   String?
+  providerEventId   String?      @unique
   failureReason     String?
   requestedByUserId String?
   requestedAt       DateTime     @default(now())
@@ -416,8 +491,32 @@ model SettlementLine {
   order                  ServiceOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   provider               User                 @relation("ProviderSettlementLines", fields: [providerId], references: [id], onDelete: Cascade)
   settlementBatch        SettlementBatch?     @relation(fields: [settlementBatchId], references: [id], onDelete: SetNull)
+  adjustments            SettlementAdjustment[]
 
   @@index([providerId, status, eligibleAt])
+  @@index([settlementBatchId])
+}
+
+model SettlementAdjustment {
+  id                     String                     @id @default(cuid())
+  providerId             String
+  orderId                String
+  sourceSettlementLineId String?
+  settlementBatchId      String?
+  amountMinor            Int
+  currency               String
+  reason                 String
+  status                 SettlementAdjustmentStatus @default(PENDING)
+  createdAt              DateTime                   @default(now())
+  appliedAt              DateTime?
+
+  provider               User                       @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  order                  ServiceOrder               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sourceSettlementLine   SettlementLine?            @relation(fields: [sourceSettlementLineId], references: [id], onDelete: SetNull)
+  settlementBatch        SettlementBatch?           @relation(fields: [settlementBatchId], references: [id], onDelete: SetNull)
+
+  @@index([providerId, status, createdAt])
+  @@index([orderId, createdAt])
   @@index([settlementBatchId])
 }
 
@@ -436,6 +535,7 @@ model SettlementBatch {
 
   provider         User                  @relation("ProviderSettlementBatches", fields: [providerId], references: [id], onDelete: Cascade)
   settlementLines  SettlementLine[]
+  settlementAdjustments SettlementAdjustment[]
 
   @@index([providerId, status, createdAt])
 }

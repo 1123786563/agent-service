@@ -1,6 +1,8 @@
 import { PaymentStatus, RefundStatus, ServiceOrderStatus } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { getPaymentAdapter } from "@/server/payments/adapter";
+import type { NormalizedRefundEvent } from "@/server/payments/webhook-events";
+import { applySettlementRefundAdjustment } from "@/server/settlements/service";
 
 type RequestRefundInput = {
   orderId: string;
@@ -122,6 +124,11 @@ export async function requestRefund(input: RequestRefundInput) {
           paymentStatus: amountMinor === order.priceCents ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED
         }
       });
+      await applySettlementRefundAdjustment({
+        orderId,
+        amountMinor,
+        reason: input.reason
+      }, tx);
     }
 
     await tx.auditLog.create({
@@ -143,5 +150,126 @@ export async function requestRefund(input: RequestRefundInput) {
     });
 
     return refund;
+  });
+}
+
+export async function applyRefundEvent(event: NormalizedRefundEvent) {
+  const order = await prisma.serviceOrder.findUnique({
+    where: {
+      id: event.orderId
+    },
+    select: {
+      id: true,
+      priceCents: true,
+      currency: true
+    }
+  });
+
+  if (!order) {
+    throw new Error("Service order not found");
+  }
+
+  if (event.amountMinor <= 0 || event.amountMinor > order.priceCents) {
+    throw new Error("Refund amount is invalid");
+  }
+
+  if (event.currency.toUpperCase() !== order.currency.toUpperCase()) {
+    throw new Error("Refund currency does not match service order");
+  }
+
+  const refundStatus = event.type === "refund.succeeded" ? RefundStatus.SUCCEEDED : RefundStatus.FAILED;
+
+  return prisma.$transaction(async (tx) => {
+    const existingRefund = await tx.refund.findFirst({
+      where: {
+        OR: [
+          {
+            providerEventId: event.providerEventId
+          },
+          {
+            providerRefundId: event.providerRefundId
+          }
+        ]
+      },
+      include: {
+        order: true
+      }
+    });
+
+    if (existingRefund?.providerEventId === event.providerEventId) {
+      return existingRefund;
+    }
+
+    const refund = existingRefund
+      ? await tx.refund.update({
+          where: {
+            id: existingRefund.id
+          },
+          data: {
+            status: refundStatus,
+            providerEventId: event.providerEventId,
+            failureReason: event.failureReason ?? existingRefund.failureReason,
+            completedAt: refundStatus === RefundStatus.SUCCEEDED ? new Date() : existingRefund.completedAt
+          },
+          include: {
+            order: true
+          }
+        })
+      : await tx.refund.create({
+          data: {
+            orderId: event.orderId,
+            provider: event.provider,
+            paymentReference: event.paymentReference ?? event.providerPaymentId ?? event.providerRefundId,
+            amountMinor: event.amountMinor,
+            currency: event.currency.toUpperCase(),
+            status: refundStatus,
+            providerRefundId: event.providerRefundId,
+            providerEventId: event.providerEventId,
+            failureReason: event.failureReason ?? null,
+            completedAt: refundStatus === RefundStatus.SUCCEEDED ? new Date() : null
+          },
+          include: {
+            order: true
+          }
+        });
+
+    let updatedOrder = refund.order;
+    if (refundStatus === RefundStatus.SUCCEEDED) {
+      updatedOrder = await tx.serviceOrder.update({
+        where: {
+          id: event.orderId
+        },
+        data: {
+          status: ServiceOrderStatus.CANCELLED,
+          paymentStatus: event.amountMinor === order.priceCents ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED
+        }
+      });
+      await applySettlementRefundAdjustment({
+        orderId: event.orderId,
+        amountMinor: event.amountMinor,
+        reason: "refund_webhook"
+      }, tx);
+    }
+
+    await tx.auditLog.create({
+      data: {
+        actorRole: "SYSTEM",
+        action: "refund.webhook.processed",
+        targetType: "Refund",
+        targetId: refund.id,
+        afterSnapshot: {
+          provider: event.provider,
+          providerEventId: event.providerEventId,
+          providerRefundId: event.providerRefundId,
+          type: event.type,
+          status: refundStatus
+        }
+      }
+    });
+
+    return {
+      ...refund,
+      order: updatedOrder
+    };
   });
 }

@@ -117,7 +117,7 @@
 - `S3_SECRET_ACCESS_KEY`
 - `S3_BUCKET`
 
-下载票据和 webhook 处理都要预留 `keyId`。第一版可以只启用一个 active key，但校验逻辑应允许同时识别 active key 和 previous key，方便后续轮换。
+下载票据和 webhook 处理都要预留 `keyId`。当前实现支持 active key 与 previous key 同时校验，轮换窗口结束后再移除 previous key。
 
 ### 速率限制与幂等
 
@@ -257,8 +257,8 @@
 - `payment.succeeded`
 - `payment.failed`
 - `payment.cancelled`
-- 后续扩展 `refund.succeeded`
-- 后续扩展 `refund.failed`
+- `refund.succeeded`
+- `refund.failed`
 
 平台内部业务只消费标准事件，不直接散落 provider 原始事件结构。
 

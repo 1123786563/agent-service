@@ -10,7 +10,11 @@ import {
 import { recordPaymentEvent } from "./ledger";
 import { devPaymentAdapter } from "./dev-adapter";
 import { StripePaymentProvider } from "./stripe-adapter";
-import { paymentStatusFromEventType, type NormalizedPaymentEvent } from "./webhook-events";
+import {
+  paymentStatusFromEventType,
+  type NormalizedPaymentEvent,
+  type NormalizedProviderEvent
+} from "./webhook-events";
 
 const paymentProviderSchema = z.string().trim().min(1);
 
@@ -47,7 +51,7 @@ export type RefundPaymentResult = {
 export interface PaymentProvider {
   provider: string;
   createCheckoutSession(input: CreateCheckoutSessionInput): Promise<PaymentCheckoutSession>;
-  parseWebhook(request: Request): Promise<NormalizedPaymentEvent>;
+  parseWebhook(request: Request): Promise<NormalizedProviderEvent>;
   refundPayment(input: RefundPaymentInput): Promise<RefundPaymentResult>;
 }
 
