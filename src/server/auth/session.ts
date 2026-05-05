@@ -95,6 +95,13 @@ export async function deleteSessionRecord(sessionStore: SessionDeleteStore, sess
   });
 }
 
+export async function deleteSessionByToken(token: string) {
+  const tokenHash = createSessionTokenHash(token);
+  await prisma.session.deleteMany({
+    where: { tokenHash }
+  });
+}
+
 export function writeSessionCookie(
   cookieStore: Pick<SessionCookieStore, "set">,
   session: Pick<SessionRecord, "token" | "expiresAt">

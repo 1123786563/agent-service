@@ -6,6 +6,7 @@ import { CompleteOrderButton } from "@/components/complete-order-button";
 import { DisputeOrderButton } from "@/components/dispute-order-button";
 import { OrderStatusPill } from "@/components/order-status-pill";
 import { getCurrentUser } from "@/server/auth/session";
+import { logout } from "@/app/account/actions";
 import { prisma } from "@/server/db";
 
 export default async function AccountOrdersPage() {
@@ -44,6 +45,9 @@ export default async function AccountOrdersPage() {
           <h1>我的订单</h1>
           <p className="lede">查看服务订单状态，并为待支付订单发起支付。</p>
         </div>
+        <form action={logout}>
+          <button className="button secondary" type="submit">退出登录</button>
+        </form>
       </div>
 
       <div className="list">
