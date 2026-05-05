@@ -1,9 +1,16 @@
 import { applyPaymentEvent } from "@/server/payments/adapter";
 import { createDevPaymentFailedEvent, createDevPaymentSucceededEvent } from "@/server/payments/dev-adapter";
+import { requireAdmin } from "@/server/auth/session";
 import { getServiceOrderById } from "@/server/orders/service";
 
 export async function GET(request: Request) {
   try {
+    if (process.env.NODE_ENV === "production") {
+      return Response.json({ errors: ["Dev payment route is not available in production"] }, { status: 403 });
+    }
+
+    await requireAdmin();
+
     const url = new URL(request.url);
     const orderId = url.searchParams.get("orderId") ?? "";
     const paymentReference = url.searchParams.get("paymentReference");
