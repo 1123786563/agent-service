@@ -3,7 +3,7 @@ import { UserRole, WhitelistStatus } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
 
-const SESSION_COOKIE = "hermes_market_session";
+export const SESSION_COOKIE = "hermes_market_session";
 const SESSION_DAYS = 30;
 
 type SessionCreateStore = {

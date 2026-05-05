@@ -5,6 +5,7 @@ import { recordPaymentEvent } from "@/server/payments/ledger";
 describe("payment ledger", () => {
   const store = {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     create: vi.fn()
   };
 
