@@ -44,6 +44,7 @@ type OrderStore = {
     paymentProvider: string;
   }): Promise<ServiceOrderWithRelations>;
   findManyForBuyerEmail(buyerEmail: string): Promise<ServiceOrderWithRelations[]>;
+  findManyForBuyerUserId(buyerUserId: string): Promise<ServiceOrderWithRelations[]>;
   findManyForProvider(providerId: string): Promise<ServiceOrderWithRelations[]>;
   findUniqueById(id: string): Promise<ServiceOrderWithRelations | null>;
   updateOrder(args: Prisma.ServiceOrderUpdateArgs): Promise<ServiceOrderWithRelations>;
@@ -141,6 +142,19 @@ const defaultDeps: OrderServiceDeps = {
     findManyForBuyerEmail(buyerEmail) {
       return prisma.serviceOrder.findMany({
         where: { buyerEmail },
+        include: {
+          consultation: true,
+          buyerUser: true,
+          provider: true
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
+    },
+    findManyForBuyerUserId(buyerUserId) {
+      return prisma.serviceOrder.findMany({
+        where: { buyerUserId },
         include: {
           consultation: true,
           buyerUser: true,
@@ -261,6 +275,14 @@ export async function createServiceOrder(
 export async function listServiceOrdersForBuyerEmail(buyerEmail: string, deps: OrderServiceDeps = defaultDeps) {
   const normalizedBuyerEmail = z.string().trim().min(1).email().parse(buyerEmail).toLowerCase();
   return deps.store.findManyForBuyerEmail(normalizedBuyerEmail);
+}
+
+export async function listServiceOrdersForBuyerUserId(buyerUserId: string, deps: OrderServiceDeps = defaultDeps) {
+  const normalizedBuyerUserId = buyerUserId.trim();
+  if (!normalizedBuyerUserId) {
+    throw new Error("Buyer user ID is required");
+  }
+  return deps.store.findManyForBuyerUserId(normalizedBuyerUserId);
 }
 
 export async function listServiceOrdersForProvider(providerId: string, deps: OrderServiceDeps = defaultDeps) {

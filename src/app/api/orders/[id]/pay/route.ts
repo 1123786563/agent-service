@@ -20,7 +20,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       });
     }
 
-    if (order.buyerEmail.toLowerCase() !== user.email.toLowerCase()) {
+    const isBuyer = (order.buyerUserId && order.buyerUserId === user.id) ||
+      (!order.buyerUserId && order.buyerEmail.toLowerCase() === user.email.toLowerCase());
+    if (!isBuyer) {
       return Response.json({
         errors: ["Buyer access is required"]
       }, {

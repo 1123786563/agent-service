@@ -1,7 +1,7 @@
 import { UserRole, WhitelistStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { sendDevLoginEmail } from "@/server/mail/dev-mailer";
+import { sendLoginEmail } from "@/server/mail";
 import {
   createOpaqueToken,
   createSessionRecord,
@@ -87,7 +87,7 @@ export async function requestMagicLink(emailInput: string) {
 
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   const loginUrl = `${appUrl}/api/auth/consume?token=${encodeURIComponent(token)}`;
-  await sendDevLoginEmail(email, loginUrl);
+  await sendLoginEmail(email, loginUrl);
 }
 
 export async function consumeMagicLink(rawToken: string) {

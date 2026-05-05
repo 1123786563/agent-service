@@ -42,6 +42,7 @@ describe("consultation route", () => {
     expect(createConsultation).toHaveBeenCalledWith({
       agentSlug: "research-assistant",
       buyerEmail: "buyer@example.com",
+      buyerUserId: "user-1",
       requirement: "Need help deploying this agent"
     });
     expect(response.status).toBe(201);

@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     const consultation = await createConsultation({
       agentSlug: agentSlug ?? "",
       buyerEmail: user.email.toLowerCase(),
+      buyerUserId: user.id,
       requirement: requirement ?? ""
     });
 
