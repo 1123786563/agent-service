@@ -5,6 +5,7 @@ import {
   AgentPackageStatus,
   DisputeResolutionType,
   PaymentStatus,
+  RefundStatus,
   ServiceOrderStatus,
   UserRole,
   WhitelistStatus
@@ -130,21 +131,23 @@ export async function refundDisputedOrder(formData: FormData) {
   const dispute = await prisma.dispute.findFirst({
     where: {
       orderId,
-      status: {
-        in: ["OPEN", "UNDER_REVIEW"]
-      }
+      status: { in: ["OPEN", "UNDER_REVIEW"] }
     },
-    orderBy: {
-      createdAt: "desc"
-    },
-    select: {
-      id: true
-    }
+    orderBy: { createdAt: "desc" },
+    select: { id: true }
   });
 
   if (!dispute) {
     throw new Error("Open dispute not found");
   }
+
+  // Idempotency guard: check if a refund already exists for this dispute
+  const existingRefund = await prisma.refund.findFirst({
+    where: {
+      disputeId: dispute.id,
+      status: { in: [RefundStatus.PENDING, RefundStatus.SUCCEEDED] }
+    }
+  });
 
   let amountMinor: number | null = null;
   if (amountValue) {
@@ -155,20 +158,34 @@ export async function refundDisputedOrder(formData: FormData) {
     amountMinor = parsedAmountMinor;
   }
 
-  await requestRefund({
-    orderId,
-    requestedByUserId: admin.id,
-    disputeId: dispute.id,
-    amountMinor,
-    reason: reason || null,
-    allowAfterWorkStarted: true
-  });
+  if (existingRefund) {
+    // Refund already in progress or completed — skip Stripe, just resolve dispute
+    await resolveLatestOpenDisputeForOrder({
+      orderId,
+      resolutionType: amountMinor
+        ? DisputeResolutionType.REFUND_PARTIAL
+        : DisputeResolutionType.REFUND_FULL,
+      resolutionNote: reason || null
+    });
+  } else {
+    // No existing refund — full flow: request refund then resolve dispute
+    await requestRefund({
+      orderId,
+      requestedByUserId: admin.id,
+      disputeId: dispute.id,
+      amountMinor,
+      reason: reason || null,
+      allowAfterWorkStarted: true
+    });
 
-  await resolveLatestOpenDisputeForOrder({
-    orderId,
-    resolutionType: amountMinor ? DisputeResolutionType.REFUND_PARTIAL : DisputeResolutionType.REFUND_FULL,
-    resolutionNote: reason || null
-  });
+    await resolveLatestOpenDisputeForOrder({
+      orderId,
+      resolutionType: amountMinor
+        ? DisputeResolutionType.REFUND_PARTIAL
+        : DisputeResolutionType.REFUND_FULL,
+      resolutionNote: reason || null
+    });
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/analytics");
