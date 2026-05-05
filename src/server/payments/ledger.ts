@@ -8,6 +8,11 @@ type PaymentLedgerStore = {
       providerEventId: string;
     };
   }): Promise<{ id: string } | null>;
+  findFirst(args: {
+    where: {
+      providerEventId: string;
+    };
+  }): Promise<{ id: string } | null>;
   create(args: {
     data: {
       orderId: string;
@@ -46,6 +51,9 @@ const defaultStore: PaymentLedgerStore = {
   findUnique(args) {
     return db.paymentLedger.findUnique(args);
   },
+  findFirst(args) {
+    return db.paymentLedger.findFirst(args);
+  },
   create(args) {
     return db.paymentLedger.create(args);
   }
@@ -72,24 +80,43 @@ export async function recordPaymentEvent(
     };
   }
 
-  const created = await store.create({
-    data: {
-      orderId: event.orderId,
-      provider: event.provider,
-      providerPaymentId: event.providerPaymentId ?? null,
-      providerCheckoutSessionId: event.providerCheckoutSessionId ?? null,
-      providerEventId: event.providerEventId,
-      amountMinor: event.amountMinor,
-      currency: event.currency,
-      paymentStatus: event.paymentStatus,
-      failureReason: event.failureReason ?? null,
-      idempotencyKey: event.idempotencyKey ?? null,
-      lastWebhookEventId: event.providerEventId,
-      lastWebhookReceivedAt: new Date(),
-      rawEventDigest: digestPayload(event.rawPayload),
-      rawEventStoredAt: new Date()
+  let created;
+  try {
+    created = await store.create({
+      data: {
+        orderId: event.orderId,
+        provider: event.provider,
+        providerPaymentId: event.providerPaymentId ?? null,
+        providerCheckoutSessionId: event.providerCheckoutSessionId ?? null,
+        providerEventId: event.providerEventId,
+        amountMinor: event.amountMinor,
+        currency: event.currency,
+        paymentStatus: event.paymentStatus,
+        failureReason: event.failureReason ?? null,
+        idempotencyKey: event.idempotencyKey ?? null,
+        lastWebhookEventId: event.providerEventId,
+        lastWebhookReceivedAt: new Date(),
+        rawEventDigest: digestPayload(event.rawPayload),
+        rawEventStoredAt: new Date()
+      }
+    });
+  } catch (error: unknown) {
+    // P2002 = unique constraint violation — concurrent webhook created the record first
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      const existing = await store.findFirst({
+        where: { providerEventId: event.providerEventId }
+      });
+      if (existing) {
+        return { duplicate: true as const, id: existing.id };
+      }
     }
-  });
+    throw error;
+  }
 
   return {
     duplicate: false as const,
