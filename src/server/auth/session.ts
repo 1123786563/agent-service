@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { WhitelistStatus } from "@prisma/client";
+import { UserRole, WhitelistStatus } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
 
@@ -154,8 +154,8 @@ export async function getCurrentUser() {
 
 export async function requireCreator() {
   const user = await getCurrentUser();
-  if (!user || user.whitelistStatus !== WhitelistStatus.ACTIVE) {
-    throw new Error("Creator whitelist is required");
+  if (!user || user.role !== UserRole.CREATOR || user.whitelistStatus !== WhitelistStatus.ACTIVE) {
+    throw new Error("Creator access is required");
   }
 
   return user;
