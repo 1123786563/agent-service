@@ -1,5 +1,19 @@
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("stripe", () => ({
+  default: class FakeStripe {
+    checkout = {
+      sessions: {
+        create: vi.fn()
+      }
+    };
+
+    webhooks = {
+      constructEvent: vi.fn((payload: string) => JSON.parse(payload))
+    };
+  }
+}));
 
 vi.mock("@/server/auth/session", () => ({
   getCurrentUser: vi.fn()
@@ -31,6 +45,10 @@ import {
   markServiceOrderPaymentFailed
 } from "@/server/orders/service";
 import { recordPaymentEvent } from "@/server/payments/ledger";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("payment routes", () => {
   it("redirects a buyer into the dev checkout flow for a payable order", async () => {
@@ -317,6 +335,75 @@ describe("payment routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       errors: ["Payment amount does not match service order"]
+    });
+  });
+
+  it("applies a Stripe checkout webhook through the shared payment path", async () => {
+    vi.stubEnv("PAYMENT_PROVIDER", "stripe");
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_123");
+    vi.stubEnv("STRIPE_WEBHOOK_SECRET", "whsec_123");
+    vi.mocked(getServiceOrderById).mockResolvedValue({
+      id: "order-1",
+      priceCents: 2500,
+      currency: "USD"
+    } as never);
+    vi.mocked(recordPaymentEvent).mockResolvedValue({
+      duplicate: false,
+      id: "ledger-6"
+    } as never);
+    vi.mocked(markServiceOrderPaid).mockResolvedValue({
+      id: "order-1",
+      status: ServiceOrderStatus.IN_PROGRESS,
+      paymentStatus: PaymentStatus.PAID
+    } as never);
+
+    const response = await paymentWebhookRoute(new Request("http://localhost/api/payments/webhook", {
+      method: "POST",
+      headers: {
+        "stripe-signature": "t=123,v1=abc"
+      },
+      body: JSON.stringify({
+        id: "evt_stripe_1",
+        type: "checkout.session.completed",
+        request: {
+          idempotency_key: "idem_1"
+        },
+        data: {
+          object: {
+            id: "cs_test_123",
+            client_reference_id: "order-1",
+            payment_intent: "pi_123",
+            amount_total: 2500,
+            currency: "usd",
+            metadata: {
+              orderId: "order-1",
+              paymentReference: "stripe_ref_1"
+            }
+          }
+        }
+      })
+    }));
+
+    expect(recordPaymentEvent).toHaveBeenCalledWith(expect.objectContaining({
+      orderId: "order-1",
+      provider: "stripe",
+      providerEventId: "evt_stripe_1",
+      providerPaymentId: "pi_123",
+      providerCheckoutSessionId: "cs_test_123",
+      paymentStatus: PaymentStatus.PAID,
+      idempotencyKey: "idem_1"
+    }));
+    expect(markServiceOrderPaid).toHaveBeenCalledWith({
+      orderId: "order-1",
+      paymentReference: "stripe_ref_1"
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      type: "payment.succeeded",
+      orderId: "order-1",
+      orderStatus: ServiceOrderStatus.IN_PROGRESS,
+      paymentStatus: PaymentStatus.PAID
     });
   });
 });

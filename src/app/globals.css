@@ -215,6 +215,11 @@ h1 {
   gap: 18px;
 }
 
+.stack {
+  display: grid;
+  gap: 20px;
+}
+
 .detail-hero {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -225,6 +230,38 @@ h1 {
 .list {
   display: grid;
   gap: 14px;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.flow-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.flow-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.code-block {
+  overflow-x: auto;
+  margin: 0;
+  padding: 14px;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #f8fafc;
 }
 
 code {

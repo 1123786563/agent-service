@@ -12,6 +12,7 @@ import {
 import { requireAdmin } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { resolveLatestOpenDisputeForOrder } from "@/server/disputes/service";
+import { requestRefund } from "@/server/refunds/service";
 import { buildSettlementLine, markSettlementBatchPaidOut, submitSettlementBatch } from "@/server/settlements/service";
 
 export async function activateCreatorWhitelist(formData: FormData) {
@@ -108,6 +109,65 @@ export async function resolveDisputedOrder(formData: FormData) {
   await resolveLatestOpenDisputeForOrder({
     orderId,
     resolutionType
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/account/orders");
+  revalidatePath("/creator/orders");
+}
+
+export async function refundDisputedOrder(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const amountValue = String(formData.get("amountMinor") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!orderId) {
+    throw new Error("Order ID is required");
+  }
+
+  const dispute = await prisma.dispute.findFirst({
+    where: {
+      orderId,
+      status: {
+        in: ["OPEN", "UNDER_REVIEW"]
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!dispute) {
+    throw new Error("Open dispute not found");
+  }
+
+  let amountMinor: number | null = null;
+  if (amountValue) {
+    const parsedAmountMinor = Number.parseInt(amountValue, 10);
+    if (!Number.isInteger(parsedAmountMinor) || parsedAmountMinor <= 0) {
+      throw new Error("Refund amount must be a positive integer in minor units");
+    }
+    amountMinor = parsedAmountMinor;
+  }
+
+  await requestRefund({
+    orderId,
+    requestedByUserId: admin.id,
+    disputeId: dispute.id,
+    amountMinor,
+    reason: reason || null,
+    allowAfterWorkStarted: true
+  });
+
+  await resolveLatestOpenDisputeForOrder({
+    orderId,
+    resolutionType: amountMinor ? DisputeResolutionType.REFUND_PARTIAL : DisputeResolutionType.REFUND_FULL,
+    resolutionNote: reason || null
   });
 
   revalidatePath("/admin");

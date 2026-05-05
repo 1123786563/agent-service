@@ -2,7 +2,14 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PaymentStatus, SettlementBatchStatus, SettlementLineStatus, UserRole } from "@prisma/client";
-import { archiveAgentPackage, markOrderSettled, markSettlementBatchPaidOutAction, resetOrderPayment, resolveDisputedOrder } from "./actions";
+import {
+  archiveAgentPackage,
+  markOrderSettled,
+  markSettlementBatchPaidOutAction,
+  refundDisputedOrder,
+  resetOrderPayment,
+  resolveDisputedOrder
+} from "./actions";
 import { getAgentPackageConversionMetrics } from "@/server/agents/package-service";
 import { getCurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -423,7 +430,7 @@ export default async function AdminPage() {
       <div className="section-header" style={{ marginTop: 32 }}>
         <div>
           <h2>争议订单</h2>
-          <p className="muted">人工恢复争议订单到进行中、待验收或取消。</p>
+          <p className="muted">人工恢复争议订单到进行中、待验收，或通过退款取消订单。</p>
         </div>
       </div>
       <div className="list">
@@ -431,34 +438,56 @@ export default async function AdminPage() {
           <article className="panel">
             <p className="muted">暂无争议订单。</p>
           </article>
-        ) : disputedOrders.map((order) => (
-          <article className="panel" key={order.id}>
-            <h3>{order.title}</h3>
-            <p className="muted">
-              买家：{order.buyerEmail} · 服务商：{order.provider.email}
-            </p>
-            <p className="muted">
-              订单状态：{order.status} · 支付状态：{order.paymentStatus}
-            </p>
-            <div className="actions">
-              <form action={resolveDisputedOrder}>
+        ) : disputedOrders.map((order) => {
+          const priceCents = Number.isFinite(order.priceCents) ? order.priceCents : 0;
+
+          return (
+            <article className="panel" key={order.id}>
+              <h3>{order.title}</h3>
+              <p className="muted">
+                买家：{order.buyerEmail} · 服务商：{order.provider.email}
+              </p>
+              <p className="muted">
+                订单状态：{order.status} · 支付状态：{order.paymentStatus} · 金额：{order.currency} {priceCents}
+              </p>
+              <div className="actions">
+                <form action={resolveDisputedOrder}>
+                  <input name="orderId" type="hidden" value={order.id} />
+                  <input name="nextStatus" type="hidden" value="IN_PROGRESS" />
+                  <button className="button secondary" type="submit">恢复进行中</button>
+                </form>
+                <form action={resolveDisputedOrder}>
+                  <input name="orderId" type="hidden" value={order.id} />
+                  <input name="nextStatus" type="hidden" value="DELIVERED" />
+                  <button className="button secondary" type="submit">恢复待验收</button>
+                </form>
+                <form action={refundDisputedOrder}>
+                  <input name="orderId" type="hidden" value={order.id} />
+                  <input name="reason" type="hidden" value="管理员仲裁全额退款" />
+                  <button className="button secondary" type="submit">全额退款并取消</button>
+                </form>
+              </div>
+              <form action={refundDisputedOrder} className="form" style={{ marginTop: 14 }}>
                 <input name="orderId" type="hidden" value={order.id} />
-                <input name="nextStatus" type="hidden" value="IN_PROGRESS" />
-                <button className="button secondary" type="submit">恢复进行中</button>
+                <label>
+                  部分退款金额（最小货币单位）
+                  <input
+                    max={priceCents > 1 ? priceCents - 1 : undefined}
+                    min="1"
+                    name="amountMinor"
+                    placeholder="例如 5000"
+                    type="number"
+                  />
+                </label>
+                <label>
+                  仲裁说明
+                  <input name="reason" placeholder="部分退款原因" type="text" />
+                </label>
+                <button className="button secondary" type="submit">部分退款并取消</button>
               </form>
-              <form action={resolveDisputedOrder}>
-                <input name="orderId" type="hidden" value={order.id} />
-                <input name="nextStatus" type="hidden" value="DELIVERED" />
-                <button className="button secondary" type="submit">恢复待验收</button>
-              </form>
-              <form action={resolveDisputedOrder}>
-                <input name="orderId" type="hidden" value={order.id} />
-                <input name="nextStatus" type="hidden" value="CANCELLED" />
-                <button className="button secondary" type="submit">取消订单</button>
-              </form>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );

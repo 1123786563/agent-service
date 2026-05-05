@@ -28,7 +28,8 @@ describe("refund service", () => {
       paymentStatus: PaymentStatus.PAID,
       paymentProvider: "dev",
       paymentReference: "devpay_1",
-      workStartedAt: null
+      workStartedAt: null,
+      paymentLedgerEntries: []
     });
     prismaMock.$transaction.mockImplementation(async (callback) =>
       callback({
@@ -41,6 +42,9 @@ describe("refund service", () => {
         },
         serviceOrder: {
           update: vi.fn().mockResolvedValue({})
+        },
+        auditLog: {
+          create: vi.fn().mockResolvedValue({})
         }
       })
     );
@@ -62,7 +66,8 @@ describe("refund service", () => {
       paymentStatus: PaymentStatus.PAID,
       paymentProvider: "dev",
       paymentReference: "devpay_2",
-      workStartedAt: new Date("2026-05-03T00:00:00.000Z")
+      workStartedAt: new Date("2026-05-03T00:00:00.000Z"),
+      paymentLedgerEntries: []
     });
 
     await expect(requestRefund({

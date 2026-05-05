@@ -27,10 +27,28 @@ export type CreateCheckoutSessionInput = {
   paymentReference?: string | null;
 };
 
+export type RefundPaymentInput = {
+  orderId: string;
+  paymentReference: string;
+  amountMinor: number;
+  currency: string;
+  reason?: string | null;
+};
+
+export type RefundPaymentResult = {
+  provider: string;
+  providerRefundId: string;
+  providerEventId?: string | null;
+  status: "pending" | "succeeded" | "failed";
+  failureReason?: string | null;
+  rawPayload?: unknown;
+};
+
 export interface PaymentProvider {
   provider: string;
   createCheckoutSession(input: CreateCheckoutSessionInput): Promise<PaymentCheckoutSession>;
   parseWebhook(request: Request): Promise<NormalizedPaymentEvent>;
+  refundPayment(input: RefundPaymentInput): Promise<RefundPaymentResult>;
 }
 
 export function getPaymentProvider(defaultProvider = process.env.PAYMENT_PROVIDER ?? "dev") {

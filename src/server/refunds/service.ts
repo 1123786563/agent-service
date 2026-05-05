@@ -1,5 +1,6 @@
 import { PaymentStatus, RefundStatus, ServiceOrderStatus } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { getPaymentAdapter } from "@/server/payments/adapter";
 
 type RequestRefundInput = {
   orderId: string;
@@ -7,7 +8,20 @@ type RequestRefundInput = {
   amountMinor?: number | null;
   reason?: string | null;
   disputeId?: string | null;
+  allowAfterWorkStarted?: boolean;
 };
+
+function refundStatusFromProviderStatus(status: "pending" | "succeeded" | "failed") {
+  if (status === "succeeded") {
+    return RefundStatus.SUCCEEDED;
+  }
+
+  if (status === "failed") {
+    return RefundStatus.FAILED;
+  }
+
+  return RefundStatus.PENDING;
+}
 
 export async function requestRefund(input: RequestRefundInput) {
   const orderId = input.orderId.trim();
@@ -25,7 +39,20 @@ export async function requestRefund(input: RequestRefundInput) {
       paymentStatus: true,
       paymentProvider: true,
       paymentReference: true,
-      workStartedAt: true
+      workStartedAt: true,
+      paymentLedgerEntries: {
+        where: {
+          paymentStatus: PaymentStatus.PAID
+        },
+        orderBy: {
+          createdAt: "desc"
+        },
+        take: 1,
+        select: {
+          providerPaymentId: true,
+          providerCheckoutSessionId: true
+        }
+      }
     }
   });
 
@@ -37,11 +64,16 @@ export async function requestRefund(input: RequestRefundInput) {
     throw new Error("Only paid orders can be refunded");
   }
 
-  if (order.workStartedAt) {
+  if (order.workStartedAt && !input.allowAfterWorkStarted) {
     throw new Error("Service order has already started");
   }
 
-  if (order.status !== ServiceOrderStatus.PENDING_PAYMENT && order.status !== ServiceOrderStatus.IN_PROGRESS) {
+  const refundableStatuses: ServiceOrderStatus[] = [
+    ServiceOrderStatus.PENDING_PAYMENT,
+    ServiceOrderStatus.IN_PROGRESS,
+    ServiceOrderStatus.DISPUTED
+  ];
+  if (!refundableStatuses.includes(order.status)) {
     throw new Error("Service order cannot be automatically refunded");
   }
 
@@ -50,26 +82,63 @@ export async function requestRefund(input: RequestRefundInput) {
     throw new Error("Refund amount is invalid");
   }
 
+  const providerPaymentReference =
+    order.paymentLedgerEntries[0]?.providerPaymentId ??
+    order.paymentLedgerEntries[0]?.providerCheckoutSessionId ??
+    order.paymentReference ??
+    `manual_${order.id}`;
+  const provider = getPaymentAdapter(order.paymentProvider);
+  const providerRefund = await provider.refundPayment({
+    orderId,
+    paymentReference: providerPaymentReference,
+    amountMinor,
+    currency: order.currency,
+    reason: input.reason ?? null
+  });
+  const refundStatus = refundStatusFromProviderStatus(providerRefund.status);
+
   return prisma.$transaction(async (tx) => {
     const refund = await tx.refund.create({
       data: {
         orderId,
         disputeId: input.disputeId ?? null,
         provider: order.paymentProvider,
-        paymentReference: order.paymentReference ?? `manual_${order.id}`,
+        paymentReference: providerPaymentReference,
         amountMinor,
         currency: order.currency,
-        status: RefundStatus.PENDING,
-        failureReason: input.reason?.trim() || null,
+        status: refundStatus,
+        providerRefundId: providerRefund.providerRefundId,
+        providerEventId: providerRefund.providerEventId ?? null,
+        failureReason: providerRefund.failureReason ?? (input.reason?.trim() || null),
         requestedByUserId: input.requestedByUserId ?? null
       }
     });
 
-    await tx.serviceOrder.update({
-      where: { id: orderId },
+    if (refundStatus === RefundStatus.SUCCEEDED) {
+      await tx.serviceOrder.update({
+        where: { id: orderId },
+        data: {
+          status: ServiceOrderStatus.CANCELLED,
+          paymentStatus: amountMinor === order.priceCents ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED
+        }
+      });
+    }
+
+    await tx.auditLog.create({
       data: {
-        status: ServiceOrderStatus.CANCELLED,
-        paymentStatus: PaymentStatus.REFUNDED
+        actorId: input.requestedByUserId ?? null,
+        actorRole: "ADMIN",
+        action: "refund.create",
+        targetType: "Refund",
+        targetId: refund.id,
+        afterSnapshot: {
+          orderId,
+          disputeId: input.disputeId ?? null,
+          amountMinor,
+          currency: order.currency,
+          status: refundStatus,
+          providerRefundId: providerRefund.providerRefundId
+        }
       }
     });
 

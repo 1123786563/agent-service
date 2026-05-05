@@ -15,6 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link className="brand" href="/">Hermes Agents</Link>
           <nav>
             <Link href="/agents">智能体</Link>
+            <Link href="/services">服务</Link>
+            <Link href="/docs">文档</Link>
             <Link href="/creator">创作者</Link>
             <Link href="/admin">管理</Link>
           </nav>

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { z } from "zod";
-import type { CreateCheckoutSessionInput, PaymentProvider } from "./adapter";
+import type { CreateCheckoutSessionInput, PaymentProvider, RefundPaymentInput } from "./adapter";
 import type { NormalizedPaymentEvent } from "./webhook-events";
 
 const appUrl = process.env.APP_URL ?? "http://localhost:3000";
@@ -143,5 +143,20 @@ export const devPaymentAdapter: PaymentProvider = {
       currency: payload.currency?.trim().toUpperCase() ?? null,
       rawPayload: payload
     } satisfies NormalizedPaymentEvent;
+  },
+  async refundPayment(input: RefundPaymentInput) {
+    return {
+      provider: "dev",
+      providerRefundId: `devrefund_${crypto.randomUUID()}`,
+      providerEventId: `devrefund_evt_${crypto.randomUUID()}`,
+      status: "succeeded" as const,
+      rawPayload: {
+        orderId: input.orderId,
+        paymentReference: input.paymentReference,
+        amountMinor: input.amountMinor,
+        currency: input.currency,
+        reason: input.reason ?? null
+      }
+    };
   }
 };
