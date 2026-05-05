@@ -1,4 +1,5 @@
 import { createConsultation } from "@/server/consultations/service";
+import { getCurrentUser } from "@/server/auth/session";
 
 export async function POST(request: Request) {
   let payload: unknown;
@@ -21,16 +22,20 @@ export async function POST(request: Request) {
     });
   }
 
-  const { agentSlug, buyerEmail, requirement } = payload as {
+  const user = await getCurrentUser();
+  if (!user) {
+    return Response.json({ errors: ["Authentication required"] }, { status: 401 });
+  }
+
+  const { agentSlug, requirement } = payload as {
     agentSlug?: string;
-    buyerEmail?: string;
     requirement?: string;
   };
 
   try {
     const consultation = await createConsultation({
       agentSlug: agentSlug ?? "",
-      buyerEmail: buyerEmail ?? "",
+      buyerEmail: user.email.toLowerCase(),
       requirement: requirement ?? ""
     });
 
