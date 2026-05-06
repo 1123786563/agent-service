@@ -36,7 +36,7 @@ export default function HomePage() {
       <section className="hero airbnb-hero">
         <div className="product-tabs" aria-label="Marketplace sections">
           {categories.map((category) => (
-            <Link key={category.label} className="product-tab" href="/agents">
+            <Link key={category.label} className="product-tab" href={`/agents?category=${category.label.toLowerCase()}`}>
               <span className="product-icon">{category.icon}</span>
               <span>{category.label}</span>
               <small>{category.status}</small>
