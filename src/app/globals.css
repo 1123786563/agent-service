@@ -44,6 +44,11 @@ nav {
   color: var(--muted);
 }
 
+nav a.active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .page {
   max-width: 1120px;
   margin: 0 auto;
