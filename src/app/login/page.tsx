@@ -1,5 +1,6 @@
 import React from "react";
 import { getLoginStatusMessage } from "@/server/auth/magic-link";
+import { LoginForm } from "./login-form";
 
 type LoginSearchParams = Record<string, string | string[] | undefined>;
 type LoginFeedback = {
@@ -51,13 +52,7 @@ export default async function LoginPage(props: {
           {feedback.message}
         </p>
       ) : null}
-      <form method="post" action="/api/auth/request-link" className="form">
-        <label>
-          邮箱
-          <input name="email" type="email" required />
-        </label>
-        <button className="button" type="submit">发送登录链接</button>
-      </form>
+      <LoginForm />
     </section>
   );
 }
