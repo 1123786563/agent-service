@@ -54,7 +54,10 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
   const visiblePackages = serviceOnly
     ? packages.filter((agentPackage) => isAgentPackageServiceAvailable(agentPackage.metadataJson))
     : packages;
-  const availableCategories = [...new Set(packages.flatMap((agentPackage) => agentPackage.categories))].sort();
+  const availableCategories = [...new Set([
+    ...packages.flatMap((agentPackage) => agentPackage.categories),
+    ...(category ? [category] : [])
+  ])].sort();
 
   function buildAgentsUrl(overrides: Record<string, string> = {}) {
     const sp = new URLSearchParams();
