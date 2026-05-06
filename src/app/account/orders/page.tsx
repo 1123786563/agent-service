@@ -40,8 +40,9 @@ export default async function AccountOrdersPage() {
 
   return (
     <section>
-      <div className="section-header">
+      <div className="market-hero">
         <div>
+          <p className="eyebrow">Buyer orders</p>
           <h1>我的订单</h1>
           <p className="lede">查看服务订单状态，并为待支付订单发起支付。</p>
         </div>
@@ -51,6 +52,12 @@ export default async function AccountOrdersPage() {
       </div>
 
       <div className="list">
+        {orders.length === 0 ? (
+          <article className="panel empty-panel">
+            <h2>暂无订单</h2>
+            <p className="muted">从支持服务的智能体详情页提交咨询后，订单会出现在这里。</p>
+          </article>
+        ) : null}
         {orders.map((order) => (
           <article className="panel" key={order.id}>
             <div className="section-header">

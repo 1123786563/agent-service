@@ -165,8 +165,9 @@ export default async function AdminPage() {
 
   return (
     <section>
-      <div className="section-header">
+      <div className="market-hero">
         <div>
+          <p className="eyebrow">Admin console</p>
           <h1>管理后台</h1>
           <p className="lede">管理白名单、查看 ZIP 风险结果、下架异常智能体。</p>
         </div>
@@ -175,28 +176,28 @@ export default async function AdminPage() {
           <Link className="button secondary" href="/admin/whitelist">白名单</Link>
         </div>
       </div>
-      <div className="grid">
-        <article className="panel">
+      <div className="stat-grid">
+        <article className="panel stat-card">
           <p className="eyebrow">Published</p>
           <h2>{publishedPackages}</h2>
           <p className="muted">已发布智能体</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Downloads</p>
           <h2>{packageAggregates._sum.downloadCount ?? 0}</h2>
           <p className="muted">累计下载</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Consultations</p>
           <h2>{consultationCount}</h2>
           <p className="muted">累计咨询</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Orders</p>
           <h2>{orderCount}</h2>
           <p className="muted">累计订单</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Completed</p>
           <h2>{completedOrderCount}</h2>
           <p className="muted">已完成订单</p>

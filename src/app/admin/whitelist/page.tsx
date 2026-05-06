@@ -18,8 +18,9 @@ export default async function WhitelistPage() {
 
   return (
     <section className="stack">
-      <div className="section-header">
+      <div className="page-hero">
         <div>
+          <p className="eyebrow">Admin access</p>
           <h1>白名单管理</h1>
           <p className="lede">添加创作者邮箱后，系统会把账号标记为可上传状态。</p>
         </div>

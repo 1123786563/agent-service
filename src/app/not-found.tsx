@@ -3,7 +3,8 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <section className="panel">
+    <section className="page-hero">
+      <p className="eyebrow">404</p>
       <h1>页面未找到</h1>
       <p className="muted">
         你访问的页面不存在，可能已被移动或删除。

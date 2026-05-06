@@ -36,13 +36,14 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
   } catch {
     return (
       <section>
-        <div className="section-header">
+        <div className="market-hero">
           <div>
+            <p className="eyebrow">Marketplace</p>
             <h1>智能体市场</h1>
             <p className="lede">浏览已通过结构校验的 Hermes-agent ZIP 包。</p>
           </div>
         </div>
-        <section className="panel">
+        <section className="panel empty-panel">
           <h2>暂时无法加载</h2>
           <p className="muted">服务正在启动中，请稍后刷新页面重试。</p>
         </section>
@@ -70,12 +71,13 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
 
   return (
     <section>
-      <div className="section-header">
+      <div className="market-hero">
         <div>
+          <p className="eyebrow">Marketplace</p>
           <h1>智能体市场</h1>
           <p className="lede">浏览已通过结构校验的 Hermes-agent ZIP 包。</p>
         </div>
-        <p className="muted">{visiblePackages.length} results</p>
+        <span className="status-pill">{visiblePackages.length} results</span>
       </div>
 
       <AgentsFilterForm
@@ -101,7 +103,7 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
       </div>
 
       {visiblePackages.length === 0 ? (
-        <section className="panel">
+        <section className="panel empty-panel">
           <h2>没有匹配结果</h2>
           <p className="muted">调整关键词、分类或排序后再试。</p>
         </section>

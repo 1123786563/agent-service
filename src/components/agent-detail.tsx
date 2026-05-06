@@ -234,7 +234,8 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
         )}
       </section>
 
-      <section className="panel" id="consultation">
+      <section className="page-hero" id="consultation">
+        <p className="eyebrow">Creator service</p>
         <h2>咨询服务</h2>
         <p className="muted">如果你需要定制、部署或培训支持，可以直接提交需求，平台后续会生成服务订单。</p>
         <ConsultationForm agentSlug={agentPackage.slug} />

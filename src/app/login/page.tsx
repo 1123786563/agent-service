@@ -37,17 +37,14 @@ export default async function LoginPage(props: {
   const feedback = getLoginFeedback(await props.searchParams);
 
   return (
-    <section className="panel">
+    <section className="page-hero">
+      <p className="eyebrow">Account access</p>
       <h1>登录</h1>
       <p className="lede">输入邮箱获取魔法链接。开发者上传权限由白名单控制。</p>
       {feedback ? (
         <p
           role={feedback.tone === "error" ? "alert" : "status"}
-          style={{
-            margin: "0 0 16px",
-            color: feedback.tone === "error" ? "#b91c1c" : "#0f766e",
-            fontWeight: 600
-          }}
+          className={feedback.tone === "error" ? "feedback-error" : "feedback-success"}
         >
           {feedback.message}
         </p>

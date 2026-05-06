@@ -155,8 +155,9 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <section className="stack">
-      <div className="section-header">
+      <div className="market-hero">
         <div>
+          <p className="eyebrow">Analytics</p>
           <h1>运营分析</h1>
           <p className="lede">按漏斗和榜单查看下载、咨询、下单和完成情况。</p>
         </div>
@@ -166,33 +167,33 @@ export default async function AdminAnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid">
-        <article className="panel">
+      <div className="stat-grid">
+        <article className="panel stat-card">
           <p className="eyebrow">Funnel</p>
           <h2>{totalDownloads}</h2>
           <p className="muted">累计下载</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Consult</p>
           <h2>{consultationCount}</h2>
           <p className="muted">咨询率 {toPercent(consultationCount, totalDownloads)}%</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Order</p>
           <h2>{orderCount}</h2>
           <p className="muted">下单率 {toPercent(orderCount, consultationCount)}%</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Complete</p>
           <h2>{completedOrderCount}</h2>
           <p className="muted">完成率 {toPercent(completedOrderCount, orderCount)}%</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Settled</p>
           <h2>{settledOrderCount}</h2>
           <p className="muted">已结算订单</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Unsettled</p>
           <h2>{unsettledRevenueCents}</h2>
           <p className="muted">待结算金额（分）</p>

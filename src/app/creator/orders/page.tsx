@@ -18,7 +18,8 @@ export default async function CreatorOrdersPage() {
 
   if (user.whitelistStatus !== WhitelistStatus.ACTIVE) {
     return (
-      <section className="panel">
+      <section className="page-hero">
+        <p className="eyebrow">Creator orders</p>
         <h1>订单列表</h1>
         <p className="lede">你的邮箱尚未进入白名单，暂时不能处理服务订单。</p>
       </section>
@@ -53,8 +54,9 @@ export default async function CreatorOrdersPage() {
 
   return (
     <section>
-      <div className="section-header">
+      <div className="market-hero">
         <div>
+          <p className="eyebrow">Creator orders</p>
           <h1>订单列表</h1>
           <p className="lede">查看当前创作者名下的服务订单和支付状态。</p>
         </div>
@@ -62,6 +64,12 @@ export default async function CreatorOrdersPage() {
       </div>
 
       <div className="list">
+        {orders.length === 0 ? (
+          <article className="panel empty-panel">
+            <h2>暂无订单</h2>
+            <p className="muted">从咨询生成的服务订单会进入这里。</p>
+          </article>
+        ) : null}
         {orders.map((order) => (
           <article className="panel" key={order.id}>
             <div className="section-header">

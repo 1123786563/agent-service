@@ -13,7 +13,8 @@ export default async function NewAgentPage() {
 
   if (user.whitelistStatus !== WhitelistStatus.ACTIVE) {
     return (
-      <section className="panel">
+      <section className="page-hero">
+        <p className="eyebrow">Creator upload</p>
         <h1>上传智能体 ZIP</h1>
         <p className="lede">你的邮箱尚未进入白名单，暂时不能上传智能体 ZIP。</p>
       </section>
@@ -21,7 +22,8 @@ export default async function NewAgentPage() {
   }
 
   return (
-    <section className="panel">
+    <section className="page-hero">
+      <p className="eyebrow">Creator upload</p>
       <h1>上传智能体 ZIP</h1>
       <p className="lede">ZIP 必须包含 agent.json 和 README.md，并引用真实存在的 skill 与 workflow 文件。</p>
       <UploadAgentForm />

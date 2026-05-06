@@ -11,13 +11,16 @@ const checklist = [
 export default function DocsPage() {
   return (
     <section className="stack">
-      <div className="section-header">
+      <div className="page-hero">
         <div>
           <p className="eyebrow">Hermes-agent docs</p>
           <h1>下载、检查并导入智能体 ZIP</h1>
           <p className="lede">面向使用者的基础导入说明，帮助你在导入前理解包结构、权限和环境变量。</p>
         </div>
-        <Link className="button" href="/agents">浏览智能体</Link>
+        <div className="actions">
+          <Link className="button" href="/agents">浏览智能体</Link>
+          <Link className="button secondary" href="/services">查看轻服务</Link>
+        </div>
       </div>
 
       <section className="panel">

@@ -15,7 +15,8 @@ export default async function CreatorPage() {
 
   if (user.whitelistStatus !== WhitelistStatus.ACTIVE) {
     return (
-      <section className="panel">
+      <section className="page-hero">
+        <p className="eyebrow">Creator studio</p>
         <h1>创作者工作台</h1>
         <p className="lede">你的邮箱尚未进入白名单，暂时不能上传智能体 ZIP。</p>
       </section>
@@ -69,8 +70,9 @@ export default async function CreatorPage() {
 
   return (
     <section>
-      <div className="section-header">
+      <div className="market-hero">
         <div>
+          <p className="eyebrow">Creator studio</p>
           <h1>创作者工作台</h1>
           <p className="lede">上传 ZIP 后，平台会校验 agent.json、skill 路径和工作流引用。</p>
         </div>
@@ -81,28 +83,28 @@ export default async function CreatorPage() {
         </div>
       </div>
 
-      <div className="grid" style={{ marginBottom: 24 }}>
-        <article className="panel">
+      <div className="stat-grid" style={{ marginBottom: 24 }}>
+        <article className="panel stat-card">
           <p className="eyebrow">Packages</p>
           <h2>{packages.length}</h2>
           <p className="muted">已发布/已上传智能体</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Downloads</p>
           <h2>{totalDownloads}</h2>
           <p className="muted">累计下载</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Consultations</p>
           <h2>{consultationCount}</h2>
           <p className="muted">待处理咨询</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Orders</p>
           <h2>{activeOrderCount}</h2>
           <p className="muted">进行中 / 待验收 / 争议</p>
         </article>
-        <article className="panel">
+        <article className="panel stat-card">
           <p className="eyebrow">Unsettled</p>
           <h2>{unsettledRevenueCents}</h2>
           <p className="muted">待结算金额（分）</p>
@@ -115,7 +117,7 @@ export default async function CreatorPage() {
             <PackageStatusPill status={agentPackage.status} />
             <h2>{agentPackage.name}</h2>
             <p>{agentPackage.summary}</p>
-            <Link href={`/agents/${agentPackage.slug}`}>查看详情</Link>
+            <Link className="surface-link" href={`/agents/${agentPackage.slug}`}>查看详情</Link>
           </article>
         ))}
       </div>

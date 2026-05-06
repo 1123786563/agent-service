@@ -11,7 +11,8 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <section className="panel">
+    <section className="page-hero">
+      <p className="eyebrow">Runtime error</p>
       <h1>出了点问题</h1>
       <p className="muted">
         {error.message || "页面加载时发生错误，请稍后重试。"}

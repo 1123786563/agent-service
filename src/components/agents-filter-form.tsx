@@ -1,6 +1,3 @@
-"use client";
-
-import { useRouter } from "next/navigation";
 import React from "react";
 
 type AgentsFilterFormProps = {
@@ -18,26 +15,8 @@ export function AgentsFilterForm({
   availableCategories,
   serviceOnly,
 }: AgentsFilterFormProps) {
-  const router = useRouter();
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const sp = new URLSearchParams();
-    const q = (fd.get("q") as string | null)?.trim();
-    const cat = (fd.get("category") as string | null)?.trim();
-    const sort = (fd.get("sort") as string | null) ?? "newest";
-    const service = fd.get("service") as string | null;
-    if (q) sp.set("q", q);
-    if (cat) sp.set("category", cat);
-    if (sort !== "newest") sp.set("sort", sort);
-    if (service) sp.set("service", service);
-    const qs = sp.toString();
-    router.push(`/agents${qs ? `?${qs}` : ""}`);
-  }
-
   return (
-    <form className="panel filters" onSubmit={handleSubmit}>
+    <form action="/agents" className="panel filters" method="get">
       <label>
         搜索
         <input defaultValue={query} name="q" placeholder="名称、摘要、slug、分类" type="search" />

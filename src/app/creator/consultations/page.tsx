@@ -16,7 +16,8 @@ export default async function CreatorConsultationsPage() {
 
   if (user.whitelistStatus !== WhitelistStatus.ACTIVE) {
     return (
-      <section className="panel">
+      <section className="page-hero">
+        <p className="eyebrow">Creator inbox</p>
         <h1>咨询列表</h1>
         <p className="lede">你的邮箱尚未进入白名单，暂时不能处理咨询请求。</p>
       </section>
@@ -38,8 +39,9 @@ export default async function CreatorConsultationsPage() {
 
   return (
     <section>
-      <div className="section-header">
+      <div className="market-hero">
         <div>
+          <p className="eyebrow">Creator inbox</p>
           <h1>咨询列表</h1>
           <p className="lede">梳理用户需求、确认服务范围，并从咨询直接生成订单。</p>
         </div>
@@ -47,6 +49,12 @@ export default async function CreatorConsultationsPage() {
       </div>
 
       <div className="list">
+        {consultations.length === 0 ? (
+          <article className="panel empty-panel">
+            <h2>暂无咨询</h2>
+            <p className="muted">当买家从智能体详情页提交服务需求后，会进入这里。</p>
+          </article>
+        ) : null}
         {consultations.map((consultation) => (
           <article className="panel" key={consultation.id}>
             <div className="section-header">

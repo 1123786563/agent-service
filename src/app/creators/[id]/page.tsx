@@ -60,7 +60,7 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
 
   return (
     <section>
-      <div className="panel">
+      <div className="page-hero">
         <p className="eyebrow">Creator</p>
         <h1>{creator.email}</h1>
         <p className="lede">查看这位创作者已发布的智能体包、累计下载和已完成服务订单。</p>
@@ -87,6 +87,12 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="grid">
+        {creator.packages.length === 0 ? (
+          <article className="panel empty-panel">
+            <h2>暂无公开智能体</h2>
+            <p className="muted">这位创作者还没有发布可下载的包。</p>
+          </article>
+        ) : null}
         {creator.packages.map((agentPackage) => (
           <AgentCard key={agentPackage.id} agentPackage={agentPackage} />
         ))}

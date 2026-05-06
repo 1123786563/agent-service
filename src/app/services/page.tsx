@@ -23,13 +23,16 @@ const serviceTypes = [
 export default function ServicesPage() {
   return (
     <section className="stack">
-      <div className="section-header">
+      <div className="page-hero">
         <div>
           <p className="eyebrow">Services</p>
           <h1>购买智能体相关轻服务</h1>
           <p className="lede">从智能体详情页提交需求，服务商确认范围后生成订单，支付完成后在站内交付。</p>
         </div>
-        <Link className="button" href="/agents?service=1">查看可服务智能体</Link>
+        <div className="actions">
+          <Link className="button" href="/agents?service=1">查看可服务智能体</Link>
+          <Link className="button secondary" href="/docs">导入说明</Link>
+        </div>
       </div>
 
       <div className="grid">
