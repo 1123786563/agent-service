@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="site-header">
           <Link className="brand" href="/">
-            <span className="brand-mark">H</span>
+            <span className="brand-mark" aria-hidden="true">H</span>
             <span>Hermes Agents</span>
           </Link>
           <Nav />
