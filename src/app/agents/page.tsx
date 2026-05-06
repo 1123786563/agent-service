@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { AgentCard } from "@/components/agent-card";
+import { AgentsFilterForm } from "@/components/agents-filter-form";
 import { isAgentPackageServiceAvailable, listPublishedAgentPackages } from "@/server/agents/package-service";
 
 export const dynamic = "force-dynamic";
@@ -57,36 +58,13 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
         <p className="muted">{visiblePackages.length} results</p>
       </div>
 
-      <form className="panel filters" method="get">
-        <label>
-          搜索
-          <input defaultValue={query} name="q" placeholder="名称、摘要、slug、分类" type="search" />
-        </label>
-        <label>
-          分类
-          <select defaultValue={category} name="category">
-            <option value="">全部</option>
-            {availableCategories.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          排序
-          <select defaultValue={normalizedSort} name="sort">
-            <option value="newest">最新发布</option>
-            <option value="downloads">下载量</option>
-            <option value="consultations">咨询热度</option>
-            <option value="conversion">综合转化</option>
-            <option value="name">名称</option>
-          </select>
-        </label>
-        <label>
-          <input key={serviceOnly ? "on" : "off"} defaultChecked={serviceOnly} name="service" type="checkbox" value="1" />
-          仅看可提供服务
-        </label>
-        <button className="button" type="submit">筛选</button>
-      </form>
+      <AgentsFilterForm
+        query={query}
+        category={category}
+        normalizedSort={normalizedSort}
+        availableCategories={availableCategories}
+        serviceOnly={serviceOnly}
+      />
 
       <div className="section-header" style={{ marginTop: 24 }}>
         <div>
