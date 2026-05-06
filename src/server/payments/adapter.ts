@@ -62,6 +62,9 @@ export function getPaymentProvider(defaultProvider = process.env.PAYMENT_PROVIDE
 
 export function getPaymentAdapter(provider = getPaymentProvider()): PaymentProvider {
   if (provider === devPaymentAdapter.provider) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Dev payment adapter is not available in production");
+    }
     return devPaymentAdapter;
   }
 
@@ -140,6 +143,13 @@ export async function applyPaymentEvent(event: NormalizedPaymentEvent) {
     } catch (error) {
       if (error instanceof ConcurrentModificationError) {
         updatedOrder = await getServiceOrderById(event.orderId);
+        await recordAuditLog({
+          actorRole: "SYSTEM",
+          action: "payment.webhook.concurrent_modification",
+          targetType: "ServiceOrder",
+          targetId: event.orderId,
+          afterSnapshot: { provider: event.provider, providerEventId: event.providerEventId, type: event.type, note: "concurrent modification" }
+        });
         return updatedOrder ?? order;
       }
       throw error;
@@ -153,6 +163,13 @@ export async function applyPaymentEvent(event: NormalizedPaymentEvent) {
     } catch (error) {
       if (error instanceof ConcurrentModificationError) {
         updatedOrder = await getServiceOrderById(event.orderId);
+        await recordAuditLog({
+          actorRole: "SYSTEM",
+          action: "payment.webhook.concurrent_modification",
+          targetType: "ServiceOrder",
+          targetId: event.orderId,
+          afterSnapshot: { provider: event.provider, providerEventId: event.providerEventId, type: event.type, note: "concurrent modification" }
+        });
         return updatedOrder ?? order;
       }
       throw error;
@@ -166,6 +183,13 @@ export async function applyPaymentEvent(event: NormalizedPaymentEvent) {
     } catch (error) {
       if (error instanceof ConcurrentModificationError) {
         updatedOrder = await getServiceOrderById(event.orderId);
+        await recordAuditLog({
+          actorRole: "SYSTEM",
+          action: "payment.webhook.concurrent_modification",
+          targetType: "ServiceOrder",
+          targetId: event.orderId,
+          afterSnapshot: { provider: event.provider, providerEventId: event.providerEventId, type: event.type, note: "concurrent modification" }
+        });
         return updatedOrder ?? order;
       }
       throw error;

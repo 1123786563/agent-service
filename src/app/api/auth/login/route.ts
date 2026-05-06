@@ -7,6 +7,8 @@ import { rateLimiter } from "@/server/rate-limit";
 
 const LOGIN_FAILURE_LIMIT = 10;
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const LOGIN_IP_LIMIT = 20; // per-IP to prevent enumeration
+const LOGIN_IP_WINDOW_MS = 15 * 60 * 1000;
 
 const loginSchema = z.object({
   email: z.string().trim().min(1).email(),
@@ -30,12 +32,19 @@ export async function POST(request: Request) {
   const { email, password } = parsed.data;
   const normalizedEmail = email.toLowerCase();
 
+  // IP-based rate limit to prevent email enumeration (before user lookup)
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ipLimit = rateLimiter.check(`login_ip:${ip}`, { windowMs: LOGIN_IP_WINDOW_MS, maxRequests: LOGIN_IP_LIMIT });
+  if (!ipLimit.allowed) {
+    return Response.json({ errors: ["Too many login attempts. Try again later."] }, { status: 429 });
+  }
+
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user?.passwordHash) {
     return Response.json({ errors: ["Invalid email or password"] }, { status: 401 });
   }
 
-  // Check account lockout
+  // Check account lockout (per-user, only counts failures)
   const lockoutKey = `login_fail:${user.id}`;
   const lockoutResult = rateLimiter.check(lockoutKey, { windowMs: LOGIN_FAILURE_WINDOW_MS, maxRequests: LOGIN_FAILURE_LIMIT });
   if (!lockoutResult.allowed) {
@@ -44,6 +53,7 @@ export async function POST(request: Request) {
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
+    // Note: rateLimiter.check already incremented the counter
     await recordAuditLog({
       actorRole: "ANONYMOUS",
       action: "auth.login.failed",
@@ -53,6 +63,9 @@ export async function POST(request: Request) {
     });
     return Response.json({ errors: ["Invalid email or password"] }, { status: 401 });
   }
+
+  // Successful login: reset the failure counter
+  rateLimiter.reset(lockoutKey);
 
   await createSession(user.id);
   await recordAuditLog({

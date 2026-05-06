@@ -15,46 +15,56 @@ export async function handleOAuthLogin(info: OAuthUserInfo) {
     throw new Error("Email not verified — please verify your email with the provider first");
   }
 
-  // Find existing OAuth account
-  const existingAccount = await prisma.oAuthAccount.findUnique({
-    where: {
-      provider_providerAccountId: {
-        provider: info.provider,
-        providerAccountId: info.providerAccountId
-      }
-    },
-    include: { user: true }
-  });
-
-  if (existingAccount) {
-    await createSession(existingAccount.user.id);
-    return existingAccount.user;
-  }
-
-  // Upsert user by email
-  const user = await prisma.user.upsert({
-    where: { email: info.email },
-    create: {
-      email: info.email,
-      oAuthAccounts: {
-        create: {
+  // Wrap in transaction to prevent race: attacker links OAuth to victim account
+  return prisma.$transaction(async (tx) => {
+    // Find existing OAuth account
+    const existingAccount = await tx.oAuthAccount.findUnique({
+      where: {
+        provider_providerAccountId: {
           provider: info.provider,
           providerAccountId: info.providerAccountId
         }
-      }
-    },
-    update: {
-      oAuthAccounts: {
-        create: {
-          provider: info.provider,
-          providerAccountId: info.providerAccountId
-        }
-      }
+      },
+      include: { user: true }
+    });
+
+    if (existingAccount) {
+      await createSession(existingAccount.user.id);
+      return existingAccount.user;
     }
-  });
 
-  await createSession(user.id);
-  return user;
+    // Find existing user by email
+    const existingUser = await tx.user.findUnique({ where: { email: info.email } });
+
+    if (existingUser) {
+      // Link OAuth account to existing user
+      await tx.oAuthAccount.create({
+        data: {
+          provider: info.provider,
+          providerAccountId: info.providerAccountId,
+          userId: existingUser.id
+        }
+      });
+      await createSession(existingUser.id);
+      return existingUser;
+    }
+
+    // Create new user with OAuth account
+    const user = await tx.user.create({
+      data: {
+        email: info.email,
+        oAuthAccounts: {
+          create: {
+            provider: info.provider,
+            providerAccountId: info.providerAccountId
+          }
+        }
+      }
+    });
+
+    await createSession(user.id);
+    return user;
+  });
 }
 
 export function getOAuthStateCookieName(provider: string) {

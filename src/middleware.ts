@@ -40,8 +40,10 @@ export function middleware(request: NextRequest) {
   // Security headers on all API responses too
   let response: NextResponse;
 
-  // Rate limiting on ALL API POST routes (including webhook)
-  if (request.method === "POST") {
+  // CSRF + Rate limiting on all state-changing API routes
+  const isStateChanging = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
+
+  if (isStateChanging) {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
     const isWebhook = pathname === "/api/payments/webhook";
     const rateLimitResult = rateLimiter.check(

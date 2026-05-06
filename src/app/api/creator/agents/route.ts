@@ -4,6 +4,8 @@ import { getCurrentUser, requireCreator } from "@/server/auth/session";
 import { createAgentPackageFromZip } from "@/server/agents/package-service";
 import { rateLimiter, RATE_LIMIT_UPLOAD } from "@/server/rate-limit";
 
+const MAX_AGENT_FILE_BYTES = 25 * 1024 * 1024; // 25MB
+
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
 
@@ -40,6 +42,12 @@ export async function POST(request: Request) {
     }, {
       status: 400
     });
+  }
+
+  if (file.size > MAX_AGENT_FILE_BYTES) {
+    return Response.json({
+      errors: [`File exceeds maximum size of ${MAX_AGENT_FILE_BYTES / (1024 * 1024)}MB`]
+    }, { status: 413 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

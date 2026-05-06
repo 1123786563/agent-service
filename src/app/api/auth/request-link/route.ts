@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     return;
   }
   try {
-    await requestMagicLink(email);
+    await requestMagicLink(normalizedEmail);
   } catch (error) {
     if (isAuthFlowError(error)) {
       redirect(`/login?error=${error.code}`);

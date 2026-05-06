@@ -25,16 +25,22 @@ export async function POST(request: Request) {
 
   const { email, password } = parsed.data;
   const normalizedEmail = email.toLowerCase();
-
-  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-  if (existing) {
-    return Response.json({ errors: ["An account with this email already exists"] }, { status: 409 });
-  }
-
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: { email: normalizedEmail, passwordHash }
-  });
+
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: { email: normalizedEmail, passwordHash }
+    });
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" && error !== null && "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return Response.json({ errors: ["An account with this email already exists"] }, { status: 409 });
+    }
+    throw error;
+  }
 
   await createSession(user.id);
   await recordAuditLog({

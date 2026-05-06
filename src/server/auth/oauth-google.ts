@@ -64,7 +64,7 @@ export async function handleGoogleCallback(code: string, state: string) {
     provider: "google",
     providerAccountId: userinfo.sub,
     email: userinfo.email,
-    emailVerified: userinfo.email_verified ?? true,
+    emailVerified: userinfo.email_verified === true,
     name: userinfo.name,
     avatarUrl: userinfo.picture
   });

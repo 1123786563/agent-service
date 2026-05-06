@@ -14,7 +14,10 @@ export async function POST(request: Request) {
     const event = await adapter.parseWebhook(request);
 
     // Reject stale webhook events (> 5 minutes old)
-    if ("timestamp" in event && typeof event.timestamp === "number" && event.timestamp > 0) {
+    if ("timestamp" in event && typeof event.timestamp === "number") {
+      if (event.timestamp <= 0) {
+        return Response.json({ errors: ["Invalid webhook event timestamp"] }, { status: 400 });
+      }
       const eventAge = Date.now() - event.timestamp;
       if (eventAge > WEBHOOK_MAX_AGE_MS) {
         return Response.json({
