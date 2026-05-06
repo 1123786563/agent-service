@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 
 type AgentsFilterFormProps = {
@@ -16,7 +18,17 @@ export function AgentsFilterForm({
   serviceOnly,
 }: AgentsFilterFormProps) {
   return (
-    <form action="/agents" className="panel filters" method="get">
+    <form action="/agents" className="panel filters" method="get" onSubmit={(e) => {
+      const form = e.currentTarget;
+      e.preventDefault();
+      const sp = new URLSearchParams();
+      const data = new FormData(form);
+      for (const [key, value] of data.entries()) {
+        if (key === "sort" && value === "newest") continue;
+        if (value) sp.set(key, value.toString());
+      }
+      window.location.href = `/agents${sp.toString() ? `?${sp.toString()}` : ""}`;
+    }}>
       <label>
         搜索
         <input defaultValue={query} name="q" placeholder="名称、摘要、slug、分类" type="search" />
