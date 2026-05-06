@@ -416,7 +416,7 @@ pre {
   padding: clamp(30px, 6vw, 64px);
   border-radius: 20px;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.14)),
+    linear-gradient(90deg, rgba(247, 247, 247, 0.98) 0%, rgba(247, 247, 247, 0.98) 56%, rgba(247, 247, 247, 0.72) 100%),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='520' viewBox='0 0 900 520'%3E%3Crect width='900' height='520' fill='%23f7f7f7'/%3E%3Cg fill='none' stroke='%23dddddd' stroke-width='2'%3E%3Cpath d='M80 96h300v180H80z'/%3E%3Cpath d='M420 86h190v130H420zM642 86h178v130H642zM420 250h400v170H420zM80 310h135v110H80zM245 310h135v110H245z'/%3E%3C/g%3E%3Cg fill='%23ff385c'%3E%3Ccircle cx='135' cy='148' r='9'/%3E%3Ccircle cx='475' cy='132' r='8'/%3E%3Ccircle cx='690' cy='132' r='8'/%3E%3C/g%3E%3Cg fill='%23222222'%3E%3Crect x='118' y='192' width='210' height='10' rx='5'/%3E%3Crect x='118' y='217' width='155' height='8' rx='4' opacity='.55'/%3E%3Crect x='456' y='278' width='250' height='10' rx='5'/%3E%3Crect x='456' y='304' width='184' height='8' rx='4' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
   background-position: center;
   background-size: cover;
@@ -1252,6 +1252,14 @@ code {
   .rating-panel {
     min-height: auto;
     border-radius: 14px;
+  }
+
+  .hero-copy {
+    background:
+      linear-gradient(rgba(247, 247, 247, 0.98), rgba(247, 247, 247, 0.98)),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='520' viewBox='0 0 900 520'%3E%3Crect width='900' height='520' fill='%23f7f7f7'/%3E%3Cg fill='none' stroke='%23dddddd' stroke-width='2'%3E%3Cpath d='M80 96h300v180H80z'/%3E%3Cpath d='M420 86h190v130H420zM642 86h178v130H642zM420 250h400v170H420zM80 310h135v110H80zM245 310h135v110H245z'/%3E%3C/g%3E%3Cg fill='%23ff385c'%3E%3Ccircle cx='135' cy='148' r='9'/%3E%3Ccircle cx='475' cy='132' r='8'/%3E%3Ccircle cx='690' cy='132' r='8'/%3E%3C/g%3E%3Cg fill='%23222222'%3E%3Crect x='118' y='192' width='210' height='10' rx='5'/%3E%3Crect x='118' y='217' width='155' height='8' rx='4' opacity='.55'/%3E%3Crect x='456' y='278' width='250' height='10' rx='5'/%3E%3Crect x='456' y='304' width='184' height='8' rx='4' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
+    background-position: center;
+    background-size: cover;
   }
 
   .listing-grid,
