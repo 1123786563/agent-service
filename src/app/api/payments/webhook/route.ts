@@ -6,10 +6,24 @@ function isRefundEvent(event: NormalizedProviderEvent): event is NormalizedRefun
   return event.type === "refund.succeeded" || event.type === "refund.failed";
 }
 
+const WEBHOOK_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
+
 export async function POST(request: Request) {
   try {
     const adapter = getPaymentAdapter(getPaymentProvider());
     const event = await adapter.parseWebhook(request);
+
+    // Reject stale webhook events (> 5 minutes old)
+    if ("timestamp" in event && typeof event.timestamp === "number" && event.timestamp > 0) {
+      const eventAge = Date.now() - event.timestamp;
+      if (eventAge > WEBHOOK_MAX_AGE_MS) {
+        return Response.json({
+          errors: ["Webhook event too old — rejected"]
+        }, {
+          status: 400
+        });
+      }
+    }
     const result = isRefundEvent(event)
       ? await applyRefundEvent(event)
       : await applyPaymentEvent(event);

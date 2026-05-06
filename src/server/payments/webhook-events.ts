@@ -12,6 +12,7 @@ export type NormalizedPaymentEvent = {
   currency?: string | null;
   failureReason?: string | null;
   idempotencyKey?: string | null;
+  timestamp?: number | null;
   rawPayload: unknown;
 };
 
