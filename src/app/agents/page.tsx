@@ -69,7 +69,7 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
           </select>
         </label>
         <label>
-          <input defaultChecked={serviceOnly} name="service" type="checkbox" value="1" />
+          <input key={serviceOnly ? "on" : "off"} defaultChecked={serviceOnly} name="service" type="checkbox" value="1" />
           仅看可提供服务
         </label>
         <button className="button" type="submit">筛选</button>
