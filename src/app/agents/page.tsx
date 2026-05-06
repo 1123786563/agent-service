@@ -25,11 +25,31 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
   const serviceOnly = getFirstParam(resolvedSearchParams?.service) === "1";
   const normalizedSort =
     sort === "downloads" || sort === "consultations" || sort === "conversion" || sort === "name" ? sort : "newest";
-  const packages = await listPublishedAgentPackages({
-    query,
-    category,
-    sort: normalizedSort
-  });
+
+  let packages;
+  try {
+    packages = await listPublishedAgentPackages({
+      query,
+      category,
+      sort: normalizedSort
+    });
+  } catch {
+    return (
+      <section>
+        <div className="section-header">
+          <div>
+            <h1>智能体市场</h1>
+            <p className="lede">浏览已通过结构校验的 Hermes-agent ZIP 包。</p>
+          </div>
+        </div>
+        <section className="panel">
+          <h2>暂时无法加载</h2>
+          <p className="muted">服务正在启动中，请稍后刷新页面重试。</p>
+        </section>
+      </section>
+    );
+  }
+
   const visiblePackages = serviceOnly
     ? packages.filter((agentPackage) => isAgentPackageServiceAvailable(agentPackage.metadataJson))
     : packages;
