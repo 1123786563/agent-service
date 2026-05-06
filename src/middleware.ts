@@ -16,6 +16,9 @@ const SECURITY_HEADERS: Record<string, string> = {
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  ...(process.env.NODE_ENV === "production"
+    ? { "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload" }
+    : {}),
 };
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
