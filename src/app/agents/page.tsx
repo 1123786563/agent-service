@@ -34,6 +34,19 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
     : packages;
   const availableCategories = [...new Set(packages.flatMap((agentPackage) => agentPackage.categories))].sort();
 
+  function buildAgentsUrl(overrides: Record<string, string> = {}) {
+    const sp = new URLSearchParams();
+    if (query) sp.set("q", query);
+    if (category) sp.set("category", category);
+    if (normalizedSort !== "newest" || overrides.sort) sp.set("sort", overrides.sort ?? normalizedSort);
+    for (const [key, value] of Object.entries(overrides)) {
+      if (key === "sort") continue;
+      if (value) sp.set(key, value);
+    }
+    const qs = sp.toString();
+    return `/agents${qs ? `?${qs}` : ""}`;
+  }
+
   return (
     <section>
       <div className="section-header">
@@ -81,12 +94,9 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
           <p className="muted">优先查看支持定制、部署或培训服务的智能体。</p>
         </div>
         {serviceOnly ? (
-          <Link className="button secondary" href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(normalizedSort)}`}>查看全部</Link>
+          <Link className="button secondary" href={buildAgentsUrl()}>查看全部</Link>
         ) : (
-          <Link
-            className="button secondary"
-            href={`/agents?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=${encodeURIComponent(normalizedSort)}&service=1`}
-          >
+          <Link className="button secondary" href={buildAgentsUrl({ service: "1" })}>
             仅看可提供服务
           </Link>
         )}
