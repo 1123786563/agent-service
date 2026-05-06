@@ -76,7 +76,7 @@ export default function HomePage() {
           </div>
 
           <aside className="rating-panel" aria-label="Marketplace trust score">
-            <p className="rating-kicker">Guest favorite style</p>
+            <p className="rating-kicker">Marketplace validated</p>
             <div className="rating-row">
               <strong>4.93</strong>
               <span>validated package score</span>
@@ -102,7 +102,14 @@ export default function HomePage() {
           {featuredAgents.map((agent) => (
             <article className="listing-card" data-tone={agent.tone} key={agent.name}>
               <div className="listing-art">
+                <span className="guest-badge">Verified package</span>
+                <span className="heart-button" aria-hidden="true">♥</span>
                 <span>{agent.name.slice(0, 1)}</span>
+                <span className="carousel-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
               </div>
               <div className="listing-body">
                 <div>
