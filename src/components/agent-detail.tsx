@@ -62,6 +62,17 @@ function formatServiceType(value: string) {
   return labels[value] ?? value;
 }
 
+function getServiceTypeToken(value: string) {
+  const labels: Record<string, string> = {
+    customization: "C",
+    deployment: "D",
+    training: "T",
+    integration: "I"
+  };
+
+  return labels[value] ?? value.slice(0, 2).toUpperCase();
+}
+
 export function AgentDetail({ agentPackage }: AgentDetailProps) {
   const validation = agentPackage.validationResult as { risks?: string[] };
   const completeness = getAgentPackageCompleteness(agentPackage);
@@ -124,7 +135,7 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
             <p className="muted">
               下载 {conversion.downloads} · 咨询 {conversion.consultations} · 订单 {conversion.orders} · 完成 {conversion.completedOrders}
             </p>
-            <div className="actions" style={{ marginTop: 8 }}>
+            <div className="actions action-tight">
               <Link className="surface-link" href={`/creators/${agentPackage.owner.id}`}>查看创作者公开页</Link>
             </div>
           </div>
@@ -137,21 +148,19 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
         <div className="amenity-grid">
           {serviceTypes.map((type) => (
             <div className="amenity-item" key={type}>
-              <span className="amenity-icon">
-                {type === "customization" ? "🎨" : type === "deployment" ? "🚀" : type === "training" ? "📖" : "🔗"}
-              </span>
+              <span className="amenity-icon">{getServiceTypeToken(type)}</span>
               {formatServiceType(type)}
             </div>
           ))}
           {inputs.map((input) => (
             <div className="amenity-item" key={input}>
-              <span className="amenity-icon">📥</span>
+              <span className="amenity-icon">IN</span>
               {input}
             </div>
           ))}
           {outputs.map((output) => (
             <div className="amenity-item" key={output}>
-              <span className="amenity-icon">📤</span>
+              <span className="amenity-icon">OUT</span>
               {output}
             </div>
           ))}
@@ -167,10 +176,10 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
         <div className="amenity-grid">
           {agentPackage.skills.map((skill) => (
             <div className="amenity-item" key={skill.id}>
-              <span className="amenity-icon">⚡</span>
+              <span className="amenity-icon">SK</span>
               <div>
                 <strong>{skill.name}</strong>
-                <p className="muted" style={{ margin: 0 }}>{skill.description}</p>
+                <p className="muted flush">{skill.description}</p>
                 <code>{skill.path}</code>
               </div>
             </div>
@@ -185,10 +194,10 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
         <div className="amenity-grid">
           {agentPackage.workflows.map((workflow) => (
             <div className="amenity-item" key={workflow.id}>
-              <span className="amenity-icon">🔄</span>
+              <span className="amenity-icon">WF</span>
               <div>
                 <strong>{workflow.name}</strong>
-                <p className="muted" style={{ margin: 0 }}>{workflow.description}</p>
+                <p className="muted flush">{workflow.description}</p>
                 <code>{workflow.path}</code>
               </div>
             </div>
@@ -205,17 +214,17 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
           <li>在导入 Hermes-agent 前检查 README、权限和环境变量。</li>
           <li>确认配置后导入 Hermes-agent。</li>
         </ol>
-        <div className="amenity-grid" style={{ marginTop: 16 }}>
+        <div className="amenity-grid block-note">
           <div className="amenity-item">
-            <span className="amenity-icon">📦</span>
+            <span className="amenity-icon">ZIP</span>
             <span>最低版本 {metadata.hermes?.minVersion ?? "未声明"}</span>
           </div>
           <div className="amenity-item">
-            <span className="amenity-icon">📥</span>
+            <span className="amenity-icon">IMP</span>
             <span>导入类型 {metadata.hermes?.importType ?? "未声明"}</span>
           </div>
         </div>
-        <p className="muted" style={{ marginTop: 12 }}>
+        <p className="muted block-note">
           完整度：摘要 {completeness.checks.summary ? "OK" : "缺失"} · 分类 {completeness.checks.categories ? "OK" : "缺失"} ·
           Skill 描述 {completeness.checks.skillDescriptions ? "OK" : "缺失"} ·
           流程描述 {completeness.checks.workflowDescriptions ? "OK" : "缺失"} ·
@@ -234,7 +243,7 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
               <div className="amenity-grid">
                 {permissions.map((permission) => (
                   <div className="amenity-item" key={permission}>
-                    <span className="amenity-icon">🔐</span>
+                    <span className="amenity-icon">PER</span>
                     <code>{permission}</code>
                   </div>
                 ))}
@@ -249,10 +258,10 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
               <div className="amenity-grid">
                 {envVars.map((item) => (
                   <div className="amenity-item" key={item.name}>
-                    <span className="amenity-icon">🔑</span>
+                    <span className="amenity-icon">ENV</span>
                     <div>
                       <code>{item.name}</code>
-                      <p className="muted" style={{ margin: 0 }}>
+                      <p className="muted flush">
                         {item.required ? "必填" : "可选"} · {item.description ?? "未提供说明"}
                       </p>
                     </div>
@@ -287,10 +296,10 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
           <p className="muted">metadata 未声明结构化结果示例；ZIP 内如有 examples/ 目录，请下载后查看。</p>
         )}
         {assets.length ? (
-          <div className="amenity-grid" style={{ marginTop: 14 }}>
+          <div className="amenity-grid block-note">
             {assets.map((asset) => (
               <div className="amenity-item" key={asset.path ?? asset.name}>
-                <span className="amenity-icon">📎</span>
+                <span className="amenity-icon">AST</span>
                 <span>{asset.name ?? "资产"} · <code>{asset.path ?? "未声明路径"}</code>{asset.type ? ` · ${asset.type}` : ""}</span>
               </div>
             ))}

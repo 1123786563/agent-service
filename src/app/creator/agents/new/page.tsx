@@ -35,7 +35,7 @@ export default async function NewAgentPage() {
         </div>
       </div>
 
-      <div className="panel" style={{ maxWidth: 680 }}>
+      <div className="panel upload-panel">
         <UploadAgentForm />
       </div>
 
@@ -43,19 +43,19 @@ export default async function NewAgentPage() {
         <h2>上传前检查</h2>
         <div className="amenity-grid">
           <div className="amenity-item">
-            <span className="amenity-icon">📦</span>
+            <span className="amenity-icon">ZIP</span>
             <span>ZIP 包必须包含 agent.json 和 README.md</span>
           </div>
           <div className="amenity-item">
-            <span className="amenity-icon">⚡</span>
+            <span className="amenity-icon">SK</span>
             <span>skill 和 workflow 路径必须真实存在</span>
           </div>
           <div className="amenity-item">
-            <span className="amenity-icon">🔍</span>
+            <span className="amenity-icon">VAL</span>
             <span>平台会自动校验结构和 metadata</span>
           </div>
           <div className="amenity-item">
-            <span className="amenity-icon">✅</span>
+            <span className="amenity-icon">OK</span>
             <span>校验通过后自动发布到市场</span>
           </div>
         </div>

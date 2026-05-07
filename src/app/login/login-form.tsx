@@ -41,7 +41,7 @@ export function LoginForm() {
   return (
     <>
       {status === "error" && errorMessage ? (
-        <p role="alert" style={{ margin: "0 0 16px", color: "#b91c1c", fontWeight: 600 }}>
+        <p role="alert" className="feedback-error">
           {errorMessage}
         </p>
       ) : null}

@@ -72,11 +72,11 @@ export default async function AccountOrdersPage() {
             <p>{order.scope}</p>
             <div className="amenity-grid" style={{ marginTop: 8 }}>
               <div className="amenity-item">
-                <span className="amenity-icon">💰</span>
+                <span className="amenity-icon">USD</span>
                 <span>{order.currency} {order.priceCents}</span>
               </div>
               <div className="amenity-item">
-                <span className="amenity-icon">💳</span>
+                <span className="amenity-icon">PAY</span>
                 <span>支付状态：{order.paymentStatus}</span>
               </div>
             </div>

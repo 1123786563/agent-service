@@ -2,27 +2,27 @@ import React from "react";
 import Link from "next/link";
 
 const checklist = [
-  { text: "先阅读 README.md，确认智能体解决的问题和运行入口。", icon: "📋" },
-  { text: "检查 agent.json 中声明的 permissions、env 和 workflows。", icon: "🔍" },
-  { text: "只在可信工作区导入第三方 ZIP，避免直接授予写文件或网络权限。", icon: "🔒" },
-  { text: "导入后先用示例输入做一次小范围验证，再接入真实业务数据。", icon: "✅" }
+  { text: "先阅读 README.md，确认智能体解决的问题和运行入口。", icon: "R" },
+  { text: "检查 agent.json 中声明的 permissions、env 和 workflows。", icon: "V" },
+  { text: "只在可信工作区导入第三方 ZIP，避免直接授予写文件或网络权限。", icon: "S" },
+  { text: "导入后先用示例输入做一次小范围验证，再接入真实业务数据。", icon: "T" }
 ];
 
 const riskCards = [
   {
     title: "网络权限",
     body: "确认外部服务、API key 和数据发送范围符合你的安全要求。",
-    icon: "🌐"
+    icon: "NET"
   },
   {
     title: "文件写入",
     body: "优先在隔离目录试运行，避免覆盖现有项目文件。",
-    icon: "📁"
+    icon: "FS"
   },
   {
     title: "环境变量",
     body: "只提供最小必要凭证，并为测试和生产使用不同密钥。",
-    icon: "🔑"
+    icon: "ENV"
   }
 ];
 
@@ -50,7 +50,7 @@ export default function DocsPage() {
 ├── workflows/
 ├── examples/
 └── assets/`}</pre>
-        <p className="muted" style={{ marginTop: 12 }}>
+        <p className="muted block-note">
           平台只解析 metadata、README、skill 和 workflow 路径，不执行上传包内代码。
         </p>
       </section>
@@ -70,8 +70,8 @@ export default function DocsPage() {
       <div className="experience-grid">
         {riskCards.map((card) => (
           <article className="listing-card" key={card.title}>
-            <div className="experience-card-art" style={{ aspectRatio: "3/2" }}>
-              <span style={{ fontSize: 36 }}>{card.icon}</span>
+            <div className="experience-card-art wide-art">
+              <span className="service-letter compact">{card.icon}</span>
             </div>
             <div className="listing-body">
               <div>

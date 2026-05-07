@@ -65,10 +65,10 @@ export default async function CreatorPublicPage({ params }: { params: Promise<{ 
         <h1>{creator.email}</h1>
         <p className="lede">查看这位创作者已发布的智能体包、累计下载和已完成服务订单。</p>
         <div className="actions">
-          <span className="status-pill">📦 {creator.packages.length} published</span>
-          <span className="status-pill">⬇️ {totalDownloads} downloads</span>
-          <span className="status-pill">💬 {totalConsultations} consultations</span>
-          <span className="status-pill">✅ {creator.providerOrders.length} completed orders</span>
+          <span className="status-pill">Packages {creator.packages.length}</span>
+          <span className="status-pill">Downloads {totalDownloads}</span>
+          <span className="status-pill">Consultations {totalConsultations}</span>
+          <span className="status-pill">Completed {creator.providerOrders.length}</span>
         </div>
         {featuredServicePackage ? (
           <div className="actions" style={{ marginTop: 16 }}>

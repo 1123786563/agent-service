@@ -39,9 +39,9 @@ export default async function LoginPage(props: {
   return (
     <div className="login-shell">
       <div className="login-card">
-        <p className="eyebrow" style={{ marginBottom: 8 }}>Account access</p>
-        <h1 style={{ marginBottom: 6 }}>登录</h1>
-        <p className="muted" style={{ marginBottom: 24 }}>输入邮箱获取魔法链接。开发者上传权限由白名单控制。</p>
+        <p className="eyebrow login-kicker">Account access</p>
+        <h1 className="login-title">登录</h1>
+        <p className="muted login-intro">输入邮箱获取魔法链接。开发者上传权限由白名单控制。</p>
         {feedback ? (
           <p
             role={feedback.tone === "error" ? "alert" : "status"}

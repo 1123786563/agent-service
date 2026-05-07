@@ -17,7 +17,7 @@ export default function Error({
       <p className="muted">
         {error.message || "页面加载时发生错误，请稍后重试。"}
       </p>
-      <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+      <div className="actions">
         <button className="button" onClick={reset}>重试</button>
         <Link className="button secondary" href="/">返回首页</Link>
       </div>

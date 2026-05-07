@@ -18,8 +18,8 @@ function getFirstParam(value?: string | string[]) {
 }
 
 const categoryIcons: Record<string, string> = {
-  research: "🔬", ops: "⚙️", writing: "✏️", rag: "📚",
-  deploy: "🚀", data: "📊", workflow: "🔗",
+  research: "R", ops: "O", writing: "W", rag: "K",
+  deploy: "D", data: "DA", workflow: "F",
 };
 
 export default async function AgentsPage({ searchParams }: { searchParams?: Promise<AgentsSearchParams> }) {
@@ -96,7 +96,7 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
             className={`category-chip${category === cat ? " active" : ""}`}
             href={buildAgentsUrl({ category: cat })}
           >
-            <span>{categoryIcons[cat.toLowerCase()] ?? "📦"}</span>
+            <span>{categoryIcons[cat.toLowerCase()] ?? "P"}</span>
             {cat}
           </Link>
         ))}
@@ -104,7 +104,7 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
           className={`category-chip${serviceOnly ? " active" : ""}`}
           href={serviceOnly ? buildAgentsUrl() : buildAgentsUrl({ service: "1" })}
         >
-          <span>✅</span>
+          <span>S</span>
           Service ready
         </Link>
       </nav>

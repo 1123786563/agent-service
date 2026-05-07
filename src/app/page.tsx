@@ -7,14 +7,14 @@ const categories = [
 ];
 
 const filterChips = [
-  { label: "Research", icon: "🔬", service: false },
-  { label: "Ops", icon: "⚙️", service: false },
-  { label: "Writing", icon: "✏️", service: false },
-  { label: "RAG", icon: "📚", service: false },
-  { label: "Deploy", icon: "🚀", service: false },
-  { label: "Data", icon: "📊", service: false },
-  { label: "Workflow", icon: "🔗", service: false },
-  { label: "Service ready", icon: "✅", service: true },
+  { label: "Research", icon: "R", service: false },
+  { label: "Ops", icon: "O", service: false },
+  { label: "Writing", icon: "W", service: false },
+  { label: "RAG", icon: "K", service: false },
+  { label: "Deploy", icon: "D", service: false },
+  { label: "Data", icon: "DA", service: false },
+  { label: "Workflow", icon: "F", service: false },
+  { label: "Service ready", icon: "S", service: true },
 ];
 
 const featuredAgents = [

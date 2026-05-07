@@ -9,7 +9,7 @@ export default function NotFound() {
       <p className="muted">
         你访问的页面不存在，可能已被移动或删除。
       </p>
-      <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+      <div className="actions">
         <Link className="button" href="/">返回首页</Link>
       </div>
     </section>
