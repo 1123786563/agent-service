@@ -18,7 +18,9 @@ export async function authorizeAgentZipDownload(slug: string) {
       status: true,
       zipFileName: true,
       objectKey: true,
-      updatedAt: true
+      updatedAt: true,
+      pricingType: true,
+      priceCents: true
     }
   });
 
@@ -33,7 +35,9 @@ export async function authorizeAgentZipDownload(slug: string) {
     objectKey: agentPackage.objectKey ?? `agents/${agentPackage.zipFileName}`,
     resourceVersion: agentPackage.updatedAt.toISOString(),
     fileName: agentPackage.zipFileName,
-    slug: agentPackage.slug
+    slug: agentPackage.slug,
+    pricingType: agentPackage.pricingType,
+    priceCents: agentPackage.priceCents
   };
 }
 
