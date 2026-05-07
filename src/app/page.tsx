@@ -7,14 +7,14 @@ const categories = [
 ];
 
 const filterChips = [
-  { label: "Research", icon: "🔬" },
-  { label: "Ops", icon: "⚙️" },
-  { label: "Writing", icon: "✏️" },
-  { label: "RAG", icon: "📚" },
-  { label: "Deploy", icon: "🚀" },
-  { label: "Data", icon: "📊" },
-  { label: "Workflow", icon: "🔗" },
-  { label: "Service ready", icon: "✅" },
+  { label: "Research", icon: "🔬", service: false },
+  { label: "Ops", icon: "⚙️", service: false },
+  { label: "Writing", icon: "✏️", service: false },
+  { label: "RAG", icon: "📚", service: false },
+  { label: "Deploy", icon: "🚀", service: false },
+  { label: "Data", icon: "📊", service: false },
+  { label: "Workflow", icon: "🔗", service: false },
+  { label: "Service ready", icon: "✅", service: true },
 ];
 
 const featuredAgents = [
@@ -87,7 +87,7 @@ export default function HomePage() {
             <Link
               key={chip.label}
               className={`category-chip${chip.label === "Research" ? " active" : ""}`}
-              href={`/agents?category=${chip.label.toLowerCase()}`}
+              href={chip.service ? "/agents?service=1" : `/agents?category=${chip.label.toLowerCase()}`}
             >
               <span>{chip.icon}</span>
               {chip.label}
