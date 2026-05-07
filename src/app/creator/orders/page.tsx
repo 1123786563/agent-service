@@ -60,7 +60,10 @@ export default async function CreatorOrdersPage() {
           <h1>订单列表</h1>
           <p className="lede">查看当前创作者名下的服务订单和支付状态。</p>
         </div>
-        <Link className="button secondary" href="/creator/consultations">查看咨询</Link>
+        <div className="actions" style={{ marginTop: 0 }}>
+          <Link className="button secondary" href="/creator">返回工作台</Link>
+          <Link className="button secondary" href="/creator/consultations">查看咨询</Link>
+        </div>
       </div>
 
       <div className="list">
@@ -80,11 +83,18 @@ export default async function CreatorOrdersPage() {
               <OrderStatusPill status={order.status} />
             </div>
             <p>{order.scope}</p>
-            <p className="muted">
-              {order.currency} {order.priceCents} · 支付状态：{order.paymentStatus}
-            </p>
+            <div className="amenity-grid" style={{ marginTop: 8 }}>
+              <div className="amenity-item">
+                <span className="amenity-icon">💰</span>
+                <span>{order.currency} {order.priceCents}</span>
+              </div>
+              <div className="amenity-item">
+                <span className="amenity-icon">💳</span>
+                <span>支付状态：{order.paymentStatus}</span>
+              </div>
+            </div>
             {order.status === "COMPLETED" ? (
-              <div className="actions" style={{ marginTop: 0 }}>
+              <div className="inline-status" style={{ marginTop: 12 }}>
                 {order.settlementLine ? <SettlementStatusPill status={order.settlementLine.status} /> : <span className="status-pill">待结算</span>}
                 <p className="muted">
                   结算状态：
@@ -97,7 +107,7 @@ export default async function CreatorOrdersPage() {
               </div>
             ) : null}
             {order.deliveries[0] ? (
-              <p className="muted">最近交付：{order.deliveries[0].fileName}</p>
+              <p className="muted" style={{ marginTop: 8 }}>最近交付：{order.deliveries[0].fileName}</p>
             ) : null}
             {order.status === "IN_PROGRESS" || order.status === "DELIVERED" ? (
               <div className="actions">
@@ -105,7 +115,7 @@ export default async function CreatorOrdersPage() {
               </div>
             ) : null}
             {order.status === "IN_PROGRESS" ? (
-              <section>
+              <section style={{ marginTop: 12 }}>
                 <h3>上传交付物</h3>
                 <UploadDeliveryForm orderId={order.id} />
               </section>

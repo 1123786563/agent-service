@@ -45,7 +45,10 @@ export default async function CreatorConsultationsPage() {
           <h1>咨询列表</h1>
           <p className="lede">梳理用户需求、确认服务范围，并从咨询直接生成订单。</p>
         </div>
-        <Link className="button secondary" href="/creator/orders">查看订单</Link>
+        <div className="actions" style={{ marginTop: 0 }}>
+          <Link className="button secondary" href="/creator">返回工作台</Link>
+          <Link className="button secondary" href="/creator/orders">查看订单</Link>
+        </div>
       </div>
 
       <div className="list">
@@ -70,7 +73,7 @@ export default async function CreatorConsultationsPage() {
             {consultation.status === ConsultationStatus.ORDER_CREATED || consultation.orders.length > 0 ? (
               <p className="muted">该咨询已生成订单。</p>
             ) : (
-              <form action={createConsultationOrderAction} className="form">
+              <form action={createConsultationOrderAction} className="form" style={{ marginTop: 16 }}>
                 <input name="consultationId" type="hidden" value={consultation.id} />
                 <label>
                   订单标题

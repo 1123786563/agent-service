@@ -76,10 +76,10 @@ export default async function CreatorPage() {
           <h1>创作者工作台</h1>
           <p className="lede">上传 ZIP 后，平台会校验 agent.json、skill 路径和工作流引用。</p>
         </div>
-        <div className="actions">
+        <div className="actions" style={{ marginTop: 0 }}>
+          <Link className="button" href="/creator/agents/new">上传智能体</Link>
           <Link className="button secondary" href="/creator/consultations">咨询列表</Link>
           <Link className="button secondary" href="/creator/orders">订单列表</Link>
-          <Link className="button" href="/creator/agents/new">上传智能体</Link>
         </div>
       </div>
 
@@ -111,13 +111,22 @@ export default async function CreatorPage() {
         </article>
       </div>
 
+      <div className="section-header" style={{ marginBottom: 16 }}>
+        <div>
+          <h2>我的智能体</h2>
+          <p className="muted">管理已上传的智能体包。</p>
+        </div>
+      </div>
+
       <div className="grid">
         {packages.map((agentPackage) => (
           <article className="panel" key={agentPackage.id}>
             <PackageStatusPill status={agentPackage.status} />
             <h2>{agentPackage.name}</h2>
             <p>{agentPackage.summary}</p>
-            <Link className="surface-link" href={`/agents/${agentPackage.slug}`}>查看详情</Link>
+            <div className="actions" style={{ marginTop: 8 }}>
+              <Link className="surface-link" href={`/agents/${agentPackage.slug}`}>查看详情</Link>
+            </div>
           </article>
         ))}
       </div>

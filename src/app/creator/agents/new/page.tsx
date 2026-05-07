@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { WhitelistStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { UploadAgentForm } from "@/components/upload-agent-form";
@@ -22,11 +23,43 @@ export default async function NewAgentPage() {
   }
 
   return (
-    <section className="page-hero">
-      <p className="eyebrow">Creator upload</p>
-      <h1>上传智能体 ZIP</h1>
-      <p className="lede">ZIP 必须包含 agent.json 和 README.md，并引用真实存在的 skill 与 workflow 文件。</p>
-      <UploadAgentForm />
+    <section className="stack">
+      <div className="page-hero">
+        <div>
+          <p className="eyebrow">Creator upload</p>
+          <h1>上传智能体 ZIP</h1>
+          <p className="lede">ZIP 必须包含 agent.json 和 README.md，并引用真实存在的 skill 与 workflow 文件。</p>
+        </div>
+        <div className="actions">
+          <Link className="button secondary" href="/creator">返回工作台</Link>
+        </div>
+      </div>
+
+      <div className="panel" style={{ maxWidth: 680 }}>
+        <UploadAgentForm />
+      </div>
+
+      <section className="panel">
+        <h2>上传前检查</h2>
+        <div className="amenity-grid">
+          <div className="amenity-item">
+            <span className="amenity-icon">📦</span>
+            <span>ZIP 包必须包含 agent.json 和 README.md</span>
+          </div>
+          <div className="amenity-item">
+            <span className="amenity-icon">⚡</span>
+            <span>skill 和 workflow 路径必须真实存在</span>
+          </div>
+          <div className="amenity-item">
+            <span className="amenity-icon">🔍</span>
+            <span>平台会自动校验结构和 metadata</span>
+          </div>
+          <div className="amenity-item">
+            <span className="amenity-icon">✅</span>
+            <span>校验通过后自动发布到市场</span>
+          </div>
+        </div>
+      </section>
     </section>
   );
 }

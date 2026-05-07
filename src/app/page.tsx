@@ -6,6 +6,17 @@ const categories = [
   { label: "Writing", icon: "W", status: "NEW" }
 ];
 
+const filterChips = [
+  { label: "Research", icon: "🔬" },
+  { label: "Ops", icon: "⚙️" },
+  { label: "Writing", icon: "✏️" },
+  { label: "RAG", icon: "📚" },
+  { label: "Deploy", icon: "🚀" },
+  { label: "Data", icon: "📊" },
+  { label: "Workflow", icon: "🔗" },
+  { label: "Service ready", icon: "✅" },
+];
+
 const featuredAgents = [
   {
     name: "Research Assistant",
@@ -28,6 +39,15 @@ const featuredAgents = [
     rating: "4.88",
     tone: "writing"
   }
+];
+
+const inspirationLinks = [
+  { title: "Research 智能体", sub: "投研、法务、产品调研", letter: "R" },
+  { title: "Ops 自动化", sub: "排障、工单、事故复盘", letter: "O" },
+  { title: "Writing 助手", sub: "提案、文案、文档撰写", letter: "W" },
+  { title: "RAG 知识库", sub: "文档检索、知识管理", letter: "K" },
+  { title: "Data 分析", sub: "数据处理、可视化", letter: "D" },
+  { title: "Workflow 编排", sub: "多步骤流程自动化", letter: "F" },
 ];
 
 export default function HomePage() {
@@ -61,6 +81,19 @@ export default function HomePage() {
             <span />
           </Link>
         </div>
+
+        <nav className="category-strip-nav" aria-label="Quick category filters">
+          {filterChips.map((chip) => (
+            <Link
+              key={chip.label}
+              className={`category-chip${chip.label === "Research" ? " active" : ""}`}
+              href={`/agents?category=${chip.label.toLowerCase()}`}
+            >
+              <span>{chip.icon}</span>
+              {chip.label}
+            </Link>
+          ))}
+        </nav>
 
         <div className="hero-grid">
           <div className="hero-copy">
@@ -122,6 +155,24 @@ export default function HomePage() {
                 </div>
               </div>
             </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="inspiration-section">
+        <div className="section-header">
+          <div>
+            <h2>Inspiration for future agents</h2>
+            <p className="muted">发现按场景分类的智能体灵感，快速定位适合你业务的方向。</p>
+          </div>
+        </div>
+        <div className="city-link-grid">
+          {inspirationLinks.map((link) => (
+            <Link key={link.title} className="city-link-cell" href={`/agents?category=${link.title.split(" ")[0].toLowerCase()}`}>
+              <div className="city-link-art">{link.letter}</div>
+              <h3>{link.title}</h3>
+              <p>{link.sub}</p>
+            </Link>
           ))}
         </div>
       </section>

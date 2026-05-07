@@ -2,10 +2,28 @@ import React from "react";
 import Link from "next/link";
 
 const checklist = [
-  "先阅读 README.md，确认智能体解决的问题和运行入口。",
-  "检查 agent.json 中声明的 permissions、env 和 workflows。",
-  "只在可信工作区导入第三方 ZIP，避免直接授予写文件或网络权限。",
-  "导入后先用示例输入做一次小范围验证，再接入真实业务数据。"
+  { text: "先阅读 README.md，确认智能体解决的问题和运行入口。", icon: "📋" },
+  { text: "检查 agent.json 中声明的 permissions、env 和 workflows。", icon: "🔍" },
+  { text: "只在可信工作区导入第三方 ZIP，避免直接授予写文件或网络权限。", icon: "🔒" },
+  { text: "导入后先用示例输入做一次小范围验证，再接入真实业务数据。", icon: "✅" }
+];
+
+const riskCards = [
+  {
+    title: "网络权限",
+    body: "确认外部服务、API key 和数据发送范围符合你的安全要求。",
+    icon: "🌐"
+  },
+  {
+    title: "文件写入",
+    body: "优先在隔离目录试运行，避免覆盖现有项目文件。",
+    icon: "📁"
+  },
+  {
+    title: "环境变量",
+    body: "只提供最小必要凭证，并为测试和生产使用不同密钥。",
+    icon: "🔑"
+  }
 ];
 
 export default function DocsPage() {
@@ -32,37 +50,38 @@ export default function DocsPage() {
 ├── workflows/
 ├── examples/
 └── assets/`}</pre>
-        <p className="muted">
+        <p className="muted" style={{ marginTop: 12 }}>
           平台只解析 metadata、README、skill 和 workflow 路径，不执行上传包内代码。
         </p>
       </section>
 
       <section className="panel">
         <h2>导入前检查</h2>
-        <div className="list">
+        <div className="amenity-grid">
           {checklist.map((item) => (
-            <p key={item}>{item}</p>
+            <div className="amenity-item" key={item.text}>
+              <span className="amenity-icon">{item.icon}</span>
+              <span>{item.text}</span>
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="panel">
-        <h2>常见风险</h2>
-        <div className="spec-grid">
-          <div>
-            <h3>网络权限</h3>
-            <p className="muted">确认外部服务、API key 和数据发送范围符合你的安全要求。</p>
-          </div>
-          <div>
-            <h3>文件写入</h3>
-            <p className="muted">优先在隔离目录试运行，避免覆盖现有项目文件。</p>
-          </div>
-          <div>
-            <h3>环境变量</h3>
-            <p className="muted">只提供最小必要凭证，并为测试和生产使用不同密钥。</p>
-          </div>
-        </div>
-      </section>
+      <div className="experience-grid">
+        {riskCards.map((card) => (
+          <article className="listing-card" key={card.title}>
+            <div className="experience-card-art" style={{ aspectRatio: "3/2" }}>
+              <span style={{ fontSize: 36 }}>{card.icon}</span>
+            </div>
+            <div className="listing-body">
+              <div>
+                <h3>{card.title}</h3>
+                <p className="muted">{card.body}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }

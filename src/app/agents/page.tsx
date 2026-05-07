@@ -17,6 +17,11 @@ function getFirstParam(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+const categoryIcons: Record<string, string> = {
+  research: "🔬", ops: "⚙️", writing: "✏️", rag: "📚",
+  deploy: "🚀", data: "📊", workflow: "🔗",
+};
+
 export default async function AgentsPage({ searchParams }: { searchParams?: Promise<AgentsSearchParams> }) {
   const resolvedSearchParams = await searchParams;
   const query = getFirstParam(resolvedSearchParams?.q) ?? "";
@@ -82,6 +87,27 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
         </div>
         <span className="status-pill">{visiblePackages.length} results</span>
       </div>
+
+      <nav className="category-strip-nav" aria-label="Category filters">
+        <Link className={`category-chip${!category ? " active" : ""}`} href="/agents">All</Link>
+        {availableCategories.map((cat) => (
+          <Link
+            key={cat}
+            className={`category-chip${category === cat ? " active" : ""}`}
+            href={buildAgentsUrl({ category: cat })}
+          >
+            <span>{categoryIcons[cat.toLowerCase()] ?? "📦"}</span>
+            {cat}
+          </Link>
+        ))}
+        <Link
+          className={`category-chip${serviceOnly ? " active" : ""}`}
+          href={serviceOnly ? buildAgentsUrl() : buildAgentsUrl({ service: "1" })}
+        >
+          <span>✅</span>
+          Service ready
+        </Link>
+      </nav>
 
       <AgentsFilterForm
         query={query}

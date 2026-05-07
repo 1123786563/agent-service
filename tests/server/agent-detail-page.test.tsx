@@ -73,11 +73,11 @@ describe("agent detail page", () => {
     expect(html).toContain("network.permission");
     expect(html).toContain("咨询服务");
     expect(html).toContain("name=\"buyerEmail\"");
-    expect(html).toContain("完整度：100%");
-    expect(html).toContain("下载：12");
-    expect(html).toContain("咨询：1");
-    expect(html).toContain("订单：1");
-    expect(html).toContain("完成：");
+    expect(html).toContain("完整度 100%");
+    expect(html).toContain("下载 12");
+    expect(html).toContain("咨询 1");
+    expect(html).toContain("订单 1");
+    expect(html).toContain("完成 1");
   });
 
   it("renders not found for an unknown slug", async () => {

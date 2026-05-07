@@ -4,20 +4,37 @@ import Link from "next/link";
 const serviceTypes = [
   {
     title: "定制",
-    body: "围绕现有智能体调整 prompt、skill、workflow 和输出格式。"
+    body: "围绕现有智能体调整 prompt、skill、workflow 和输出格式。",
+    icon: "🎨",
+    letter: "C"
   },
   {
     title: "部署",
-    body: "协助配置运行环境、权限、密钥和团队工作区导入流程。"
+    body: "协助配置运行环境、权限、密钥和团队工作区导入流程。",
+    icon: "🚀",
+    letter: "D"
   },
   {
     title: "培训",
-    body: "为团队讲解智能体使用边界、输入规范和验收方法。"
+    body: "为团队讲解智能体使用边界、输入规范和验收方法。",
+    icon: "📖",
+    letter: "T"
   },
   {
     title: "集成",
-    body: "把智能体接入内部文档、数据源或已有操作流程。"
+    body: "把智能体接入内部文档、数据源或已有操作流程。",
+    icon: "🔗",
+    letter: "I"
   }
+];
+
+const flowSteps = [
+  "提交咨询",
+  "确认范围",
+  "生成订单",
+  "完成支付",
+  "上传交付",
+  "确认完成"
 ];
 
 export default function ServicesPage() {
@@ -35,11 +52,21 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      <div className="grid">
+      <div className="experience-grid">
         {serviceTypes.map((item) => (
-          <article className="panel" key={item.title}>
-            <h2>{item.title}</h2>
-            <p className="muted">{item.body}</p>
+          <article className="listing-card" key={item.title}>
+            <div className="experience-card-art">
+              <span className="guest-badge">NEW</span>
+              <span className="listing-art" style={{ position: "static", aspectRatio: "auto", background: "transparent", borderRadius: 0 }}>
+                <span style={{ fontSize: 40 }}>{item.icon}</span>
+              </span>
+            </div>
+            <div className="listing-body">
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </div>
+            </div>
           </article>
         ))}
       </div>
@@ -47,12 +74,12 @@ export default function ServicesPage() {
       <section className="panel">
         <h2>交易流程</h2>
         <div className="flow-list">
-          <span>提交咨询</span>
-          <span>确认范围</span>
-          <span>生成订单</span>
-          <span>完成支付</span>
-          <span>上传交付</span>
-          <span>确认完成</span>
+          {flowSteps.map((step, index) => (
+            <span key={step}>
+              <span style={{ color: "var(--accent)", fontWeight: 700, marginRight: 6 }}>{index + 1}</span>
+              {step}
+            </span>
+          ))}
         </div>
       </section>
     </section>

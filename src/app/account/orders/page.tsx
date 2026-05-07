@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PaymentStatus, ServiceOrderStatus } from "@prisma/client";
 import { CancelOrderButton } from "@/components/cancel-order-button";
@@ -70,15 +71,22 @@ export default async function AccountOrdersPage() {
               <OrderStatusPill status={order.status} />
             </div>
             <p>{order.scope}</p>
-            <p className="muted">
-              {order.currency} {order.priceCents} · 支付状态：{order.paymentStatus}
-            </p>
+            <div className="amenity-grid" style={{ marginTop: 8 }}>
+              <div className="amenity-item">
+                <span className="amenity-icon">💰</span>
+                <span>{order.currency} {order.priceCents}</span>
+              </div>
+              <div className="amenity-item">
+                <span className="amenity-icon">💳</span>
+                <span>支付状态：{order.paymentStatus}</span>
+              </div>
+            </div>
 
             {order.status === ServiceOrderStatus.PENDING_PAYMENT &&
             (order.paymentStatus === PaymentStatus.UNPAID || order.paymentStatus === PaymentStatus.FAILED) ? (
-              <section>
+              <section style={{ marginTop: 12 }}>
                 {order.paymentStatus === PaymentStatus.FAILED ? (
-                  <p className="muted">上一次支付失败，请重新发起支付。</p>
+                  <p className="feedback-error">上一次支付失败，请重新发起支付。</p>
                 ) : null}
                 <div className="actions">
                   <form action={`/api/orders/${order.id}/pay`} method="post">
@@ -90,7 +98,7 @@ export default async function AccountOrdersPage() {
             ) : null}
 
             {order.deliveries[0] ? (
-              <section>
+              <section style={{ marginTop: 12 }}>
                 <h3>交付物</h3>
                 {order.deliveries[0].note ? <p>{order.deliveries[0].note}</p> : null}
                 <div className="actions">
