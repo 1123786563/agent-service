@@ -46,6 +46,7 @@ export type CreateAgentPackageSuccess = {
   package: AgentPackageWithRelations;
   storage: StoredZipFile;
   risks: string[];
+  packageType: "single" | "team";
 };
 
 export type CreateAgentPackageResult = CreateAgentPackageFailure | CreateAgentPackageSuccess;
@@ -61,6 +62,8 @@ export type ListPublishedPackagesOptions = {
   query?: string;
   category?: string;
   sort?: PublishedPackageSort;
+  packageType?: "SINGLE" | "TEAM";
+  pricingType?: "FREE" | "PAID";
 };
 
 export type MarketplaceSummary = {
@@ -159,7 +162,9 @@ const defaultDeps: PackageServiceDeps = {
                   }
                 ]
               }
-            : {})
+            : {}),
+          ...(options.packageType ? { packageType: options.packageType } : {}),
+          ...(options.pricingType ? { pricingType: options.pricingType } : {})
         },
         orderBy,
         include: {
@@ -280,7 +285,14 @@ export async function createAgentPackageFromZip(
 ): Promise<CreateAgentPackageResult> {
   const validation = await deps.validateZip(input.buffer);
 
-  if (!validation.ok || !validation.metadata) {
+  // Extract metadata based on package type
+  const packageType = validation.packageType;
+  const metadata =
+    packageType === "single"
+      ? (validation as { packageType: "single"; agentsMd?: { frontmatter: { id: string; name: string; version: string; summary: string; categories: string[]; pricing: { type: string; price: number }; skills: Array<{ name: string; path: string; description: string }>; workflows: Array<{ name: string; path: string; description: string }> } }; soulMd?: { identity: string }; behaviorInstructions?: string }).agentsMd?.frontmatter
+      : (validation as { packageType: "team"; teamMd?: { frontmatter: { id: string; name: string; version: string; summary: string; categories: string[]; pricing: { type: string; price: number }; agents: Array<{ id: string; path: string; role: string; triggers: string[] }> } } }).teamMd?.frontmatter;
+
+  if (!validation.ok || !metadata) {
     return {
       ok: false,
       errors: validation.errors,
@@ -289,9 +301,20 @@ export async function createAgentPackageFromZip(
   }
 
   const storage = await deps.storage.saveUploadedZip(input.buffer, input.fileName);
-  const baseSlug = slugifyPackageName(validation.metadata.name) || slugifyPackageName(validation.metadata.id) || "agent-package";
+  const baseSlug = slugifyPackageName(metadata.name) || slugifyPackageName(metadata.id) || "agent-package";
   const existingSlugs = await deps.packageStore.findSlugsWithPrefix(baseSlug);
   const attemptedSlugs = [...existingSlugs];
+
+  const isPaid = metadata.pricing.type === "paid";
+  const pricingPrice = metadata.pricing.price ?? 0;
+  const soulPreview =
+    packageType === "single"
+      ? ((validation as any).soulMd?.identity?.slice(0, 200) ?? null)
+      : null;
+  const behaviorDigest =
+    packageType === "single"
+      ? ((validation as any).agentsMd?.behaviorInstructions?.slice(0, 500) ?? null)
+      : null;
 
   try {
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -301,12 +324,12 @@ export async function createAgentPackageFromZip(
         const createdPackage = await deps.packageStore.createPackage({
           data: {
             ownerId: input.ownerId,
-            name: validation.metadata.name,
+            name: metadata.name,
             slug,
-            version: validation.metadata.version,
-            summary: validation.metadata.summary,
-            categories: validation.metadata.categories,
-            metadataJson: validation.metadata,
+            version: metadata.version,
+            summary: metadata.summary,
+            categories: metadata.categories,
+            metadataJson: metadata as any,
             zipFileUrl: storage.url,
             zipFileName: storage.fileName,
             zipSizeBytes: storage.sizeBytes,
@@ -324,15 +347,20 @@ export async function createAgentPackageFromZip(
             },
             status: AgentPackageStatus.PUBLISHED,
             publishedAt: new Date(),
+            packageType: packageType === "single" ? "SINGLE" as const : "TEAM" as const,
+            pricingType: isPaid ? "PAID" as const : "FREE" as const,
+            priceCents: Math.round(pricingPrice * 100),
+            soulPreview,
+            behaviorDigest,
             skills: {
-              create: validation.metadata.skills.map((skill) => ({
+              create: metadata.skills.map((skill: { name: string; path: string; description: string }) => ({
                 name: skill.name,
                 path: skill.path,
                 description: skill.description
               }))
             },
             workflows: {
-              create: validation.metadata.workflows.map((workflow) => ({
+              create: metadata.workflows.map((workflow: { name: string; path: string; description: string }) => ({
                 name: workflow.name,
                 path: workflow.path,
                 description: workflow.description
@@ -350,7 +378,8 @@ export async function createAgentPackageFromZip(
           ok: true,
           package: createdPackage,
           storage,
-          risks: validation.risks
+          risks: validation.risks,
+          packageType
         };
       } catch (error) {
         if (isSlugConflictError(error)) {
@@ -384,11 +413,15 @@ function normalizeListOptions(options: ListPublishedPackagesOptions = {}): Requi
     options.sort === "name"
       ? options.sort
       : "newest";
+  const packageType = options.packageType ?? "";
+  const pricingType = options.pricingType ?? "";
 
   return {
     query,
     category,
-    sort
+    sort,
+    packageType,
+    pricingType
   };
 }
 

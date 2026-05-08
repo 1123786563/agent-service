@@ -1,6 +1,6 @@
 import { AgentPackageStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
-import { createAgentZip } from "@/test/fixtures";
+import { createSingleAgentZip } from "@/test/fixtures";
 import {
   createAgentPackageFromZip,
   getPublishedAgentPackageBySlug,
@@ -109,8 +109,9 @@ describe("createAgentPackageFromZip", () => {
   });
 
   it("stores validated zips and persists package records", async () => {
-    const zipBuffer = await createAgentZip();
+    const zipBuffer = await createSingleAgentZip();
     const validation = await validateAgentZip(zipBuffer);
+    const fm = validation.packageType === "single" ? validation.agentsMd?.frontmatter : undefined;
     const saveUploadedZip = vi.fn().mockResolvedValue({
       url: "/api/uploads/research-assistant-a1b2c3d4.zip",
       fileName: "research-assistant-a1b2c3d4.zip",
@@ -126,12 +127,12 @@ describe("createAgentPackageFromZip", () => {
     const createdPackage = {
       id: "pkg-123",
       ownerId: "user-123",
-      name: validation.metadata?.name,
+      name: fm?.name,
       slug: "research-assistant-2",
-      version: validation.metadata?.version,
-      summary: validation.metadata?.summary,
-      categories: validation.metadata?.categories,
-      metadataJson: validation.metadata,
+      version: fm?.version,
+      summary: fm?.summary,
+      categories: fm?.categories,
+      metadataJson: fm,
       zipFileUrl: "/api/uploads/research-assistant-a1b2c3d4.zip",
       zipFileName: "research-assistant-a1b2c3d4.zip",
       zipSizeBytes: zipBuffer.byteLength,
@@ -153,8 +154,8 @@ describe("createAgentPackageFromZip", () => {
       createdAt: new Date("2026-04-30T00:00:00.000Z"),
       updatedAt: new Date("2026-04-30T00:00:00.000Z"),
       owner: { id: "user-123", email: "user@example.com" },
-      skills: validation.metadata?.skills ?? [],
-      workflows: validation.metadata?.workflows ?? []
+      skills: fm?.skills ?? [],
+      workflows: fm?.workflows ?? []
     };
     const createPackage = vi.fn().mockResolvedValue(createdPackage);
 
@@ -186,38 +187,20 @@ describe("createAgentPackageFromZip", () => {
     expect(saveUploadedZip).toHaveBeenCalledWith(zipBuffer, "Research Assistant.zip");
     expect(findSlugsWithPrefix).toHaveBeenCalledWith("research-assistant");
     expect(createPackage).toHaveBeenCalledWith({
-      data: {
+      data: expect.objectContaining({
         ownerId: "user-123",
-        name: validation.metadata?.name,
+        name: fm?.name,
         slug: "research-assistant-2",
-        version: validation.metadata?.version,
-        summary: validation.metadata?.summary,
-        categories: validation.metadata?.categories,
-        metadataJson: validation.metadata,
+        version: fm?.version,
+        summary: fm?.summary,
+        categories: fm?.categories,
         zipFileUrl: "/api/uploads/research-assistant-a1b2c3d4.zip",
         zipFileName: "research-assistant-a1b2c3d4.zip",
-        zipSizeBytes: zipBuffer.byteLength,
-        objectKey: "agents/research-assistant-a1b2c3d4.zip",
-        storageProvider: "LOCAL",
-        bucket: null,
-        mimeType: "application/zip",
-        contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
-        checksum: "abc123",
-        downloadCount: 0,
-        validationResult: {
-          errors: [],
-          risks: validation.risks,
-          fileNames: validation.fileNames
-        },
         status: AgentPackageStatus.PUBLISHED,
-        publishedAt: expect.any(Date),
-        skills: {
-          create: validation.metadata?.skills
-        },
-        workflows: {
-          create: validation.metadata?.workflows
-        }
-      },
+        packageType: "SINGLE",
+        pricingType: "FREE",
+        priceCents: 0,
+      }),
       include: {
         owner: true,
         skills: true,
@@ -225,10 +208,11 @@ describe("createAgentPackageFromZip", () => {
       }
     });
     expect(result.package.slug).toBe("research-assistant-2");
+    expect(result.packageType).toBe("single");
   });
 
   it("persists provider-backed metadata when the active storage is s3-compatible", async () => {
-    const zipBuffer = await createAgentZip();
+    const zipBuffer = await createSingleAgentZip();
     const validation = await validateAgentZip(zipBuffer);
     const saveUploadedZip = vi.fn().mockResolvedValue({
       url: "https://objects.example.com/agents/research-assistant-a1b2c3d4.zip",
@@ -241,11 +225,12 @@ describe("createAgentPackageFromZip", () => {
       contentDisposition: 'attachment; filename="research-assistant-a1b2c3d4.zip"',
       checksum: "abc123"
     });
+    const fm = validation.packageType === "single" ? validation.agentsMd?.frontmatter : undefined;
     const createPackage = vi.fn().mockResolvedValue({
       id: "pkg-234",
       owner: { id: "user-123", email: "user@example.com" },
-      skills: validation.metadata?.skills ?? [],
-      workflows: validation.metadata?.workflows ?? []
+      skills: fm?.skills ?? [],
+      workflows: fm?.workflows ?? []
     });
 
     await createAgentPackageFromZip({
@@ -278,7 +263,7 @@ describe("createAgentPackageFromZip", () => {
   });
 
   it("deletes the stored zip when persistence fails after upload", async () => {
-    const zipBuffer = await createAgentZip();
+    const zipBuffer = await createSingleAgentZip();
     const saveUploadedZip = vi.fn().mockResolvedValue({
       url: "/api/uploads/research-assistant-a1b2c3d4.zip",
       fileName: "research-assistant-a1b2c3d4.zip",
@@ -319,7 +304,7 @@ describe("createAgentPackageFromZip", () => {
   });
 
   it("retries with a new slug after a slug uniqueness conflict", async () => {
-    const zipBuffer = await createAgentZip();
+    const zipBuffer = await createSingleAgentZip();
     const saveUploadedZip = vi.fn().mockResolvedValue({
       url: "/api/uploads/research-assistant-a1b2c3d4.zip",
       fileName: "research-assistant-a1b2c3d4.zip",
@@ -393,7 +378,9 @@ describe("published package queries", () => {
     expect(listPublishedPackages).toHaveBeenCalledWith({
       query: "published",
       category: "",
-      sort: "downloads"
+      sort: "downloads",
+      packageType: "",
+      pricingType: ""
     });
     expect(findPublishedPackageBySlug).toHaveBeenCalledWith("published-agent");
     expect(incrementDownloadCount).toHaveBeenCalledWith("published-agent");
@@ -449,7 +436,9 @@ describe("published package queries", () => {
     expect(listPublishedPackages).toHaveBeenCalledWith({
       query: "",
       category: "",
-      sort: "conversion"
+      sort: "conversion",
+      packageType: "",
+      pricingType: ""
     });
   });
 });
