@@ -108,6 +108,26 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
             <span className="muted">{conversion.downloads} downloads</span>
           </div>
           <a className="button" href={`/api/agents/${agentPackage.slug}/download`}>下载 ZIP</a>
+          {agentPackage.pricingType === "PAID" && (
+            <div className="reservation-price" style={{ marginTop: 8 }}>
+              <strong>${((agentPackage.priceCents ?? 0) / 100).toFixed(2)}</strong>
+              <span className="muted">一次性购买</span>
+            </div>
+          )}
+          {agentPackage.pricingType === "PAID" ? (
+            <a className="button" href={`/api/agents/${agentPackage.slug}/download?paid=1`}>
+              购买并下载 (${((agentPackage.priceCents ?? 0) / 100).toFixed(2)} USD)
+            </a>
+          ) : (
+            <>
+              <a className="button" href={`hermes://import?url=${encodeURIComponent(`/api/agents/${agentPackage.slug}/download`)}&token=auto`}>
+                一键导入 Hermes
+              </a>
+              <a className="button secondary" href={`/api/agents/${agentPackage.slug}/download`}>
+                下载 ZIP
+              </a>
+            </>
+          )}
           <div className="reservation-breakdown">
             <span><span>咨询</span><b>{conversion.consultations}</b></span>
             <span><span>订单</span><b>{conversion.orders}</b></span>
@@ -164,7 +184,13 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
               {output}
             </div>
           ))}
-          {serviceTypes.length === 0 && inputs.length === 0 && outputs.length === 0 && (
+          {agentPackage.packageType === "TEAM" && (
+            <div className="amenity-item">
+              <span className="amenity-icon">TEAM</span>
+              <span>团队包（多 Agent 协作）</span>
+            </div>
+          )}
+          {serviceTypes.length === 0 && inputs.length === 0 && outputs.length === 0 && agentPackage.packageType !== "TEAM" && (
             <p className="muted">该包未声明可购买服务或输入输出说明，请查看 README。</p>
           )}
         </div>
@@ -187,6 +213,15 @@ export function AgentDetail({ agentPackage }: AgentDetailProps) {
           {agentPackage.skills.length === 0 && <p className="muted">未声明 Skill。</p>}
         </div>
       </section>
+
+      {/* ── SOUL Preview ── */}
+      {agentPackage.soulPreview && (
+        <section className="panel">
+          <h2>人格预览</h2>
+          <p className="muted">这是 Agent 的身份简介，完整 SOUL.md 在导入后可见。</p>
+          <blockquote>{agentPackage.soulPreview}</blockquote>
+        </section>
+      )}
 
       {/* ── Workflows ── */}
       <section className="panel">
