@@ -11,6 +11,8 @@ type AgentsSearchParams = {
   category?: string | string[];
   sort?: string | string[];
   service?: string | string[];
+  type?: string | string[];
+  pricing?: string | string[];
 };
 
 function getFirstParam(value?: string | string[]) {
@@ -28,6 +30,8 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
   const category = getFirstParam(resolvedSearchParams?.category) ?? "";
   const sort = getFirstParam(resolvedSearchParams?.sort) ?? "newest";
   const serviceOnly = getFirstParam(resolvedSearchParams?.service) === "1";
+  const packageType = getFirstParam(resolvedSearchParams?.type) ?? "";
+  const pricingType = getFirstParam(resolvedSearchParams?.pricing) ?? "";
   const normalizedSort =
     sort === "downloads" || sort === "consultations" || sort === "conversion" || sort === "name" ? sort : "newest";
 
@@ -36,7 +40,9 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
     packages = await listPublishedAgentPackages({
       query,
       category,
-      sort: normalizedSort
+      sort: normalizedSort,
+      packageType: packageType as "SINGLE" | "TEAM" | undefined,
+      pricingType: pricingType as "FREE" | "PAID" | undefined,
     });
   } catch {
     return (
@@ -106,6 +112,20 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
         >
           <span>S</span>
           Service ready
+        </Link>
+        <Link
+          className={`category-chip${packageType === "TEAM" ? " active" : ""}`}
+          href={packageType ? buildAgentsUrl() : buildAgentsUrl({ type: "TEAM" })}
+        >
+          <span>T</span>
+          Team packages
+        </Link>
+        <Link
+          className={`category-chip${pricingType === "PAID" ? " active" : ""}`}
+          href={pricingType ? buildAgentsUrl() : buildAgentsUrl({ pricing: "PAID" })}
+        >
+          <span>$</span>
+          Paid only
         </Link>
       </nav>
 

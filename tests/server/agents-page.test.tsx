@@ -77,7 +77,9 @@ describe("agents page", () => {
     expect(listPublishedAgentPackages).toHaveBeenCalledWith({
       query: "research",
       category: "research",
-      sort: "downloads"
+      sort: "downloads",
+      packageType: "",
+      pricingType: ""
     });
   });
 

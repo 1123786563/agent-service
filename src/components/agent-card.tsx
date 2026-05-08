@@ -62,6 +62,8 @@ export function AgentCard({ agentPackage }: AgentCardProps) {
         <p>{agentPackage.summary}</p>
         <p>
           {agentPackage.skills.length} skills · v{agentPackage.version} · {agentPackage.downloadCount} downloads
+          {agentPackage.packageType === "TEAM" && <span className="badge"> 团队包</span>}
+          {agentPackage.pricingType === "PAID" && <span className="badge"> ${((agentPackage.priceCents ?? 0) / 100).toFixed(2)}</span>}
         </p>
         <p>
           咨询 {conversion.consultations} · 订单 {conversion.orders} · 完成 {conversion.completedOrders} · 完整度 {completeness.score}%
