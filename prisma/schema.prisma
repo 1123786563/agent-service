@@ -98,6 +98,11 @@ enum SettlementAdjustmentStatus {
   APPLIED
 }
 
+enum PricingType {
+  FREE
+  PAID
+}
+
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -189,6 +194,8 @@ model AgentPackage {
   deletedAt        DateTime?
   coverUrl         String?
   downloadCount    Int                @default(0)
+  pricingType      PricingType        @default(FREE)
+  priceCents       Int                @default(0)
   status           AgentPackageStatus @default(DRAFT)
   validationResult Json
   publishedAt      DateTime?

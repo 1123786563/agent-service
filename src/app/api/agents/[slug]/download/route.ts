@@ -17,6 +17,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   }
 
   const url = new URL(request.url);
+
+  if (authorization.pricingType === "PAID") {
+    const paid = url.searchParams.get("paid");
+    if (paid !== "1") {
+      return Response.json(
+        { error: "Payment required", priceCents: authorization.priceCents },
+        { status: 402 }
+      );
+    }
+  }
+
   const ticket = url.searchParams.get("ticket") ?? createDownloadTicket({
     resourceType: authorization.resourceType,
     resourceId: authorization.resourceId,
