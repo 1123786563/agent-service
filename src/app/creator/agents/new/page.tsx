@@ -28,7 +28,7 @@ export default async function NewAgentPage() {
         <div>
           <p className="eyebrow">Creator upload</p>
           <h1>上传智能体 ZIP</h1>
-          <p className="lede">ZIP 必须包含 agent.json 和 README.md，并引用真实存在的 skill 与 workflow 文件。</p>
+          <p className="lede">ZIP 必须包含 AGENTS.md、SOUL.md 和 README.md。团队包需要 TEAM.md。</p>
         </div>
         <div className="actions">
           <Link className="button secondary" href="/creator">返回工作台</Link>
@@ -43,8 +43,12 @@ export default async function NewAgentPage() {
         <h2>上传前检查</h2>
         <div className="amenity-grid">
           <div className="amenity-item">
-            <span className="amenity-icon">ZIP</span>
-            <span>ZIP 包必须包含 agent.json 和 README.md</span>
+            <span className="amenity-icon">AG</span>
+            <span>单 Agent 包需要 AGENTS.md + SOUL.md + README.md</span>
+          </div>
+          <div className="amenity-item">
+            <span className="amenity-icon">TM</span>
+            <span>团队包需要 TEAM.md + agents/ 目录下的子 Agent</span>
           </div>
           <div className="amenity-item">
             <span className="amenity-icon">SK</span>
@@ -52,7 +56,7 @@ export default async function NewAgentPage() {
           </div>
           <div className="amenity-item">
             <span className="amenity-icon">VAL</span>
-            <span>平台会自动校验结构和 metadata</span>
+            <span>平台会自动校验 AGENTS.md 元数据和 SOUL.md 身份</span>
           </div>
           <div className="amenity-item">
             <span className="amenity-icon">OK</span>
