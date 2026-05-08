@@ -60,6 +60,16 @@ enum StorageProviderKind {
   S3_COMPATIBLE
 }
 
+enum PackageType {
+  SINGLE
+  TEAM
+}
+
+enum PricingType {
+  FREE
+  PAID
+}
+
 enum DisputeStatus {
   OPEN
   UNDER_REVIEW
@@ -192,6 +202,14 @@ model AgentPackage {
   status           AgentPackageStatus @default(DRAFT)
   validationResult Json
   publishedAt      DateTime?
+  packageType       PackageType  @default(SINGLE) @map("package_type")
+  pricingType       PricingType  @default(FREE) @map("pricing_type")
+  priceCents        Int          @default(0) @map("price_cents")
+  platformFeeRate   Int          @default(20) @map("platform_fee_rate")
+  soulPreview       String?      @map("soul_preview")
+  behaviorDigest    String?      @map("behavior_digest")
+  routingDefault    String?      @map("routing_default")
+  routingFallback   String?      @map("routing_fallback")
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -202,6 +220,8 @@ model AgentPackage {
   favorites        AgentPackageFavorite[]
   reviews          AgentPackageReview[]
   importInstructions AgentPackageImportInstruction[]
+  childAgents       TeamAgent[]  @relation("TeamToAgents")
+  parentTeam        TeamAgent[]  @relation("AgentInTeam")
 
   @@index([ownerId, createdAt])
   @@index([status, publishedAt])
@@ -558,4 +578,19 @@ model SettlementBatch {
   settlementAdjustments SettlementAdjustment[]
 
   @@index([providerId, status, createdAt])
+}
+
+model TeamAgent {
+  id          String  @id @default(cuid())
+  teamId      String  @map("team_id")
+  agentId     String  @map("agent_id")
+  role        String
+  triggers    String[]
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  team        AgentPackage @relation("TeamToAgents", fields: [teamId], references: [id], onDelete: Cascade)
+  agent       AgentPackage @relation("AgentInTeam", fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, agentId])
+  @@map("team_agents")
 }
