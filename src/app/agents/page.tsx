@@ -41,8 +41,8 @@ export default async function AgentsPage({ searchParams }: { searchParams?: Prom
       query,
       category,
       sort: normalizedSort,
-      packageType: packageType as "SINGLE" | "TEAM" | undefined,
-      pricingType: pricingType as "FREE" | "PAID" | undefined,
+      ...(packageType ? { packageType: packageType as "SINGLE" | "TEAM" } : {}),
+      ...(pricingType ? { pricingType: pricingType as "FREE" | "PAID" } : {}),
     });
   } catch {
     return (

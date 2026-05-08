@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 
-export function createValidAgentsMd(overrides: Record<string, string> = {}): string {
+export function createValidAgentsMd(): string {
   return `---
 id: research-assistant
 name: "Research Assistant"

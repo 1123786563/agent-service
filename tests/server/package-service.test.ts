@@ -378,9 +378,7 @@ describe("published package queries", () => {
     expect(listPublishedPackages).toHaveBeenCalledWith({
       query: "published",
       category: "",
-      sort: "downloads",
-      packageType: "",
-      pricingType: ""
+      sort: "downloads"
     });
     expect(findPublishedPackageBySlug).toHaveBeenCalledWith("published-agent");
     expect(incrementDownloadCount).toHaveBeenCalledWith("published-agent");
@@ -436,9 +434,7 @@ describe("published package queries", () => {
     expect(listPublishedPackages).toHaveBeenCalledWith({
       query: "",
       category: "",
-      sort: "conversion",
-      packageType: "",
-      pricingType: ""
+      sort: "conversion"
     });
   });
 });

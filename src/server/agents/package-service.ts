@@ -3,6 +3,8 @@ import { prisma } from "@/server/db";
 import { deleteStoredZip, readStoredZip, saveUploadedZip, type StoredZipFile } from "@/server/storage/local-storage";
 import { toStorageProviderKind } from "@/server/storage/provider";
 import { validateAgentZip, type ZipValidationResult } from "./zip-validator";
+import type { AgentsMdFrontmatter } from "./agents-md-schema";
+import type { TeamMdFrontmatter } from "./team-md-schema";
 
 type AgentPackageWithRelations = Prisma.AgentPackageGetPayload<{
   include: {
@@ -285,14 +287,7 @@ export async function createAgentPackageFromZip(
 ): Promise<CreateAgentPackageResult> {
   const validation = await deps.validateZip(input.buffer);
 
-  // Extract metadata based on package type
-  const packageType = validation.packageType;
-  const metadata =
-    packageType === "single"
-      ? (validation as { packageType: "single"; agentsMd?: { frontmatter: { id: string; name: string; version: string; summary: string; categories: string[]; pricing: { type: string; price: number }; skills: Array<{ name: string; path: string; description: string }>; workflows: Array<{ name: string; path: string; description: string }> } }; soulMd?: { identity: string }; behaviorInstructions?: string }).agentsMd?.frontmatter
-      : (validation as { packageType: "team"; teamMd?: { frontmatter: { id: string; name: string; version: string; summary: string; categories: string[]; pricing: { type: string; price: number }; agents: Array<{ id: string; path: string; role: string; triggers: string[] }> } } }).teamMd?.frontmatter;
-
-  if (!validation.ok || !metadata) {
+  if (!validation.ok) {
     return {
       ok: false,
       errors: validation.errors,
@@ -300,21 +295,37 @@ export async function createAgentPackageFromZip(
     };
   }
 
+  const packageType = validation.packageType;
+
+  // Extract common fields from validation result
+  const agentsMd = packageType === "single"
+    ? (validation as { packageType: "single"; agentsMd?: { frontmatter: AgentsMdFrontmatter; behaviorInstructions: string }; soulMd?: { identity: string } }).agentsMd
+    : undefined;
+  const teamMd = packageType === "team"
+    ? (validation as { packageType: "team"; teamMd?: { frontmatter: TeamMdFrontmatter } }).teamMd
+    : undefined;
+
+  const fm = agentsMd?.frontmatter ?? teamMd?.frontmatter;
+  if (!fm) {
+    return {
+      ok: false,
+      errors: ["No valid metadata found in package"],
+      risks: validation.risks
+    };
+  }
+
+  const skills = ("skills" in fm ? fm.skills : []) as Array<{ name: string; path: string; description: string }>;
+  const workflows = ("workflows" in fm ? fm.workflows : []) as Array<{ name: string; path: string; description: string }>;
+
   const storage = await deps.storage.saveUploadedZip(input.buffer, input.fileName);
-  const baseSlug = slugifyPackageName(metadata.name) || slugifyPackageName(metadata.id) || "agent-package";
+  const baseSlug = slugifyPackageName(fm.name) || slugifyPackageName(fm.id) || "agent-package";
   const existingSlugs = await deps.packageStore.findSlugsWithPrefix(baseSlug);
   const attemptedSlugs = [...existingSlugs];
 
-  const isPaid = metadata.pricing.type === "paid";
-  const pricingPrice = metadata.pricing.price ?? 0;
-  const soulPreview =
-    packageType === "single"
-      ? ((validation as any).soulMd?.identity?.slice(0, 200) ?? null)
-      : null;
-  const behaviorDigest =
-    packageType === "single"
-      ? ((validation as any).agentsMd?.behaviorInstructions?.slice(0, 500) ?? null)
-      : null;
+  const isPaid = fm.pricing.type === "paid";
+  const pricingPrice = fm.pricing.price ?? 0;
+  const soulPreview = agentsMd ? (validation as { soulMd?: { identity: string } }).soulMd?.identity?.slice(0, 200) ?? null : null;
+  const behaviorDigest = agentsMd ? agentsMd.behaviorInstructions?.slice(0, 500) ?? null : null;
 
   try {
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -324,12 +335,13 @@ export async function createAgentPackageFromZip(
         const createdPackage = await deps.packageStore.createPackage({
           data: {
             ownerId: input.ownerId,
-            name: metadata.name,
+            name: fm.name,
             slug,
-            version: metadata.version,
-            summary: metadata.summary,
-            categories: metadata.categories,
-            metadataJson: metadata as any,
+            version: fm.version,
+            summary: fm.summary,
+            categories: fm.categories,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            metadataJson: fm as any,
             zipFileUrl: storage.url,
             zipFileName: storage.fileName,
             zipSizeBytes: storage.sizeBytes,
@@ -353,14 +365,14 @@ export async function createAgentPackageFromZip(
             soulPreview,
             behaviorDigest,
             skills: {
-              create: metadata.skills.map((skill: { name: string; path: string; description: string }) => ({
+              create: skills.map((skill) => ({
                 name: skill.name,
                 path: skill.path,
                 description: skill.description
               }))
             },
             workflows: {
-              create: metadata.workflows.map((workflow: { name: string; path: string; description: string }) => ({
+              create: workflows.map((workflow) => ({
                 name: workflow.name,
                 path: workflow.path,
                 description: workflow.description
@@ -403,7 +415,7 @@ export async function createAgentPackageFromZip(
   }
 }
 
-function normalizeListOptions(options: ListPublishedPackagesOptions = {}): Required<ListPublishedPackagesOptions> {
+function normalizeListOptions(options: ListPublishedPackagesOptions = {}): ListPublishedPackagesOptions {
   const query = (options.query ?? "").trim();
   const category = (options.category ?? "").trim().toLowerCase();
   const sort =
@@ -413,15 +425,13 @@ function normalizeListOptions(options: ListPublishedPackagesOptions = {}): Requi
     options.sort === "name"
       ? options.sort
       : "newest";
-  const packageType = options.packageType ?? "";
-  const pricingType = options.pricingType ?? "";
 
   return {
     query,
     category,
     sort,
-    packageType,
-    pricingType
+    packageType: options.packageType,
+    pricingType: options.pricingType
   };
 }
 
