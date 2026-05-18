@@ -1,0 +1,254 @@
+/* ── Dashboard Styles ── */
+/* Light theme (default) and Dark theme via [data-theme="dark"] or .dark */
+
+/* ── Dashboard Page Layout ── */
+.dashboard-page {
+  display: grid;
+  gap: 28px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+}
+
+/* ── Range Selector ── */
+.dashboard-range-selector {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.dashboard-range-btn {
+  min-height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.dashboard-range-btn:hover {
+  color: var(--text);
+}
+
+.dashboard-range-btn.active {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-range-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Overview Cards ── */
+.dashboard-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.dashboard-card {
+  display: grid;
+  gap: 6px;
+  padding: 22px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--panel);
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.dashboard-card:hover {
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-card--skeleton {
+  opacity: 0.6;
+}
+
+.dashboard-card-icon {
+  font-size: 24px;
+}
+
+.dashboard-card-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.dashboard-card-value {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* ── Charts Grid ── */
+.dashboard-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.dashboard-chart-panel {
+  padding: 22px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.dashboard-chart-panel:hover {
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-chart-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.dashboard-chart-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ── Recharts theming ── */
+.dashboard-grid-line {
+  stroke: var(--line-soft);
+}
+
+.dashboard-axis {
+  fill: var(--muted);
+}
+
+/* ── Heatmap ── */
+.dashboard-heatmap-panel {
+  overflow: hidden;
+}
+
+.dashboard-heatmap-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+.dashboard-heatmap-label {
+  fill: var(--muted);
+}
+
+/* ── Empty State ── */
+.dashboard-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 200px;
+  padding: 32px;
+  border: 2px dashed var(--line-soft);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  text-align: center;
+  color: var(--muted);
+}
+
+.dashboard-empty-state h3 {
+  margin: 8px 0 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.dashboard-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ── Error ── */
+.dashboard-error {
+  padding: 24px;
+  border: 1px solid #c13515;
+  border-radius: 14px;
+  background: rgba(193, 53, 21, 0.06);
+  color: #c13515;
+}
+
+.dashboard-error h3 {
+  margin: 0 0 8px;
+}
+
+.dashboard-error p {
+  margin: 0;
+}
+
+/* ── Timestamp ── */
+.dashboard-timestamp {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted-soft);
+}
+
+/* ── Responsive ── */
+@media (max-width: 743px) {
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── Dark theme ── */
+[data-theme="dark"] .dashboard-card,
+[data-theme="dark"] .dashboard-chart-panel,
+.dark .dashboard-card,
+.dark .dashboard-chart-panel {
+  background: var(--panel, #1a1a1a);
+  border-color: var(--line, #333);
+}
+
+[data-theme="dark"] .dashboard-range-selector,
+.dark .dashboard-range-selector {
+  background: var(--surface-strong, #222);
+  border-color: var(--line, #333);
+}
+
+[data-theme="dark"] .dashboard-range-btn.active,
+.dark .dashboard-range-btn.active {
+  background: var(--surface-soft, #2a2a2a);
+  color: var(--text, #eee);
+}
+
+[data-theme="dark"] .dashboard-empty-state,
+.dark .dashboard-empty-state {
+  background: var(--surface-strong, #222);
+  border-color: var(--line, #333);
+}
+
+[data-theme="dark"] .dashboard-empty-state h3,
+.dark .dashboard-empty-state h3 {
+  color: var(--text, #eee);
+}
