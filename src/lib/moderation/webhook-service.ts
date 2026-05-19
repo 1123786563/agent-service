@@ -1,6 +1,5 @@
 import { prisma } from "@/server/db";
 import { signWebhookPayload } from "./api-key-auth";
-import { emitModerationEvent } from "./event-stream";
 
 export interface WebhookRegistration {
   url: string;
@@ -25,7 +24,7 @@ export async function registerWebhook(
       apiKeyId,
       url: registration.url,
       secret,
-      events: registration.events as any[],
+      events: registration.events as ("ITEM_FLAGGED" | "ITEM_RESOLVED" | "ITEM_ESCALATED" | "ITEM_ASSIGNED" | "ALERT_TRIGGERED")[],
       isActive: true,
     },
   });
@@ -66,7 +65,7 @@ export async function deleteWebhook(webhookId: string, apiKeyId: string) {
 }
 
 export async function deliverWebhooks(
-  event: string,
+  event: "ITEM_FLAGGED" | "ITEM_RESOLVED" | "ITEM_ESCALATED" | "ITEM_ASSIGNED" | "ALERT_TRIGGERED",
   data: Record<string, unknown>
 ): Promise<void> {
   const endpoints = await prisma.webhookEndpoint.findMany({
@@ -96,7 +95,7 @@ async function createDelivery(
   webhookId: string,
   url: string,
   secret: string,
-  event: string,
+  event: "ITEM_FLAGGED" | "ITEM_RESOLVED" | "ITEM_ESCALATED" | "ITEM_ASSIGNED" | "ALERT_TRIGGERED",
   payload: WebhookPayload,
   payloadStr: string
 ) {
@@ -105,8 +104,8 @@ async function createDelivery(
   await prisma.webhookDelivery.create({
     data: {
       webhookId,
-      event: event as any,
-      payload: payload as any,
+      event,
+      payload: JSON.parse(JSON.stringify(payload)),
       attempts: 0,
       maxAttempts: 5,
     },
@@ -137,17 +136,21 @@ export async function attemptDelivery(
     const responseText = await response.text().catch(() => "");
 
     if (response.ok) {
-      await prisma.webhookDelivery.updateMany({
-        where: { webhookId, deliveredAt: null },
-        data: {
-          statusCode: response.status,
-          response: responseText.slice(0, 1000),
-          attempts: attempt + 1,
-          deliveredAt: new Date(),
-        },
+      const pending = await prisma.webhookDelivery.findFirst({
+        where: { webhookId, deliveredAt: null, failedAt: null },
         orderBy: { createdAt: "desc" },
-        take: 1,
       });
+      if (pending) {
+        await prisma.webhookDelivery.update({
+          where: { id: pending.id },
+          data: {
+            statusCode: response.status,
+            response: responseText.slice(0, 1000),
+            attempts: attempt + 1,
+            deliveredAt: new Date(),
+          },
+        });
+      }
       return true;
     }
 

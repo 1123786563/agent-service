@@ -698,7 +698,7 @@ model ModerationAlert {
   acknowledgedAt DateTime?
   resolvedAt  DateTime?
 
-  threshold   AlertThreshold @relation(fields: [thresholdId], references: [id], onDelete: Cascade)
+  thresholdRef AlertThreshold @relation(fields: [thresholdId], references: [id], onDelete: Cascade)
 
   @@index([status, triggeredAt])
   @@index([thresholdId])

@@ -97,7 +97,7 @@ export async function getResponseTimeDistribution(days: number): Promise<Respons
     where: {
       status: "RESOLVED",
       resolvedAt: { gte: cutoff },
-      createdAt: { not: null },
+      createdAt: { not: null as unknown as Date },
     },
     select: {
       createdAt: true,

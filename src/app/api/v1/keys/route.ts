@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       keyHash,
       keyPrefix,
       name: parsed.data.name,
-      tier: tier as any,
+      tier: tier as "STANDARD" | "PREMIUM",
       rateLimit,
     },
   });
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   }, { status: 201 });
 }
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return Response.json({ errors: ["Authentication required"] }, { status: 401 });

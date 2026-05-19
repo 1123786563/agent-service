@@ -147,7 +147,7 @@ export async function checkAlerts(
 
         emitModerationEvent({
           type: "alert_triggered",
-          data: alertEvent,
+          data: alertEvent as unknown as Record<string, unknown>,
         });
       }
     }

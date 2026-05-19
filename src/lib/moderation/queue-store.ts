@@ -1,5 +1,5 @@
 import { prisma } from "@/server/db";
-import type { QueueItem, ReviewerWorkload } from "./types";
+import type { QueueItem } from "./types";
 import type { QueueStore } from "./queue-service";
 
 export function createPrismaQueueStore(): QueueStore {

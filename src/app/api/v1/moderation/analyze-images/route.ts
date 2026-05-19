@@ -1,6 +1,6 @@
 import { authenticateApiKey } from "@/lib/moderation/api-key-auth";
 import { logApiUsage } from "@/lib/moderation/usage-tracking";
-import { analyzeImageUpload } from "@/lib/moderation/image-analyzer";
+import { analyzeImage } from "@/lib/moderation/image-analyzer";
 
 export async function POST(request: Request) {
   const start = Date.now();
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   for (const file of files) {
     if (!(file instanceof File)) continue;
     const buffer = Buffer.from(await file.arrayBuffer());
-    results.push(analyzeImageUpload(buffer, file.name, file.type));
+    results.push(analyzeImage({ imageBuffer: buffer, fileName: file.name, mimeType: file.type }));
   }
 
   const totalProcessingTimeMs = Date.now() - overallStart;

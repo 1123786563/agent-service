@@ -27,10 +27,9 @@ export async function computeDailyStats(date: Date): Promise<DailyStats> {
     }),
     prisma.contentQueueItem.findMany({
       where: {
-        resolvedAt: { gte: startOfDay, lt: endOfDay },
+        resolvedAt: { gte: startOfDay, lt: endOfDay, not: null as unknown as Date },
         status: "RESOLVED",
-        createdAt: { not: null },
-        resolvedAt: { not: null },
+        createdAt: { not: null as unknown as Date },
       },
       select: {
         createdAt: true,

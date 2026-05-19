@@ -1,5 +1,5 @@
 import { authenticateApiKey } from "@/lib/moderation/api-key-auth";
-import { checkHealth, checkServiceHealth } from "@/lib/moderation/health-check";
+import { getPipelineHealth, getServiceHealth } from "@/lib/moderation/health-check";
 
 export async function GET(request: Request) {
   const auth = await authenticateApiKey(request);
@@ -11,10 +11,10 @@ export async function GET(request: Request) {
   const service = url.searchParams.get("service");
 
   if (service) {
-    const result = await checkServiceHealth(service);
+    const result = await getServiceHealth(service);
     return Response.json({ data: result }, { status: 200 });
   }
 
-  const pipeline = await checkHealth();
+  const pipeline = await getPipelineHealth();
   return Response.json({ data: pipeline }, { status: 200 });
 }
