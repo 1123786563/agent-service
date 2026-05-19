@@ -98,6 +98,15 @@ enum SettlementAdjustmentStatus {
   APPLIED
 }
 
+enum NotificationType {
+  ORDER_STATUS_CHANGED
+  DELIVERY_SUBMITTED
+  PAYMENT_RECEIVED
+  DISPUTE_OPENED
+  REVIEW_RECEIVED
+  SYSTEM_ANNOUNCEMENT
+}
+
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -125,6 +134,8 @@ model User {
   settlementBatches SettlementBatch[] @relation("ProviderSettlementBatches")
   settlementAdjustments SettlementAdjustment[]
   oAuthAccounts    OAuthAccount[]
+  notifications    Notification[]
+  notificationPreferences NotificationPreference[]
 }
 
 model OAuthAccount {
@@ -558,4 +569,33 @@ model SettlementBatch {
   settlementAdjustments SettlementAdjustment[]
 
   @@index([providerId, status, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([userId, type, createdAt])
+}
+
+model NotificationPreference {
+  id             String           @id @default(cuid())
+  userId         String
+  notificationType NotificationType
+  emailEnabled   Boolean          @default(true)
+  pushEnabled    Boolean          @default(true)
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
 }
