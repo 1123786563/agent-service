@@ -174,6 +174,7 @@ export default async function AdminPage() {
         <div className="actions" style={{ marginTop: 0 }}>
           <Link className="button secondary" href="/admin/analytics">运营分析</Link>
           <Link className="button secondary" href="/admin/whitelist">白名单</Link>
+          <Link className="button secondary" href="/moderation">内容审核</Link>
         </div>
       </div>
       <div className="stat-grid">

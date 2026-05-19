@@ -1670,6 +1670,247 @@ code {
 }
 
 /* ── Mobile sticky bottom reservation bar ── */
+
+/* ── Moderation Dashboard ── */
+.mod-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.mod-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow-card);
+}
+
+.mod-filter-bar label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mod-filter-bar select {
+  min-width: 140px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.mod-review-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.mod-queue-list {
+  display: grid;
+  gap: 12px;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.mod-queue-item {
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.mod-queue-item:hover,
+.mod-queue-item.selected {
+  border-color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+
+.mod-queue-item.selected {
+  border-left: 3px solid var(--accent);
+}
+
+.mod-queue-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mod-queue-item-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.mod-detail-panel {
+  position: sticky;
+  top: 104px;
+  padding: 24px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow-card);
+}
+
+.mod-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mod-detail-header h2 {
+  margin: 0;
+}
+
+.mod-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  font-size: 14px;
+}
+
+.mod-detail-section {
+  margin-bottom: 18px;
+}
+
+.mod-detail-section h3 {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.mod-content-preview {
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.mod-timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.mod-timeline-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mod-timeline-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.mod-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.mod-monitoring-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+.mod-feed-list {
+  display: grid;
+  gap: 10px;
+  max-height: calc(100vh - 340px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.mod-feed-item {
+  padding: 12px 16px;
+}
+
+.mod-feed-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mod-health-panel .list {
+  gap: 10px;
+}
+
+.mod-health-card {
+  padding: 14px 16px;
+}
+
+.mod-health-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 1128px) {
+  .mod-chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mod-review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mod-queue-list {
+    max-height: 400px;
+  }
+
+  .mod-detail-panel {
+    position: static;
+  }
+
+  .mod-monitoring-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mod-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 743px) {
+  .mod-detail-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .mod-actions {
+    flex-direction: column;
+  }
+
+  .mod-actions .button {
+    width: 100%;
+  }
+}
 @media (max-width: 743px) {
   .reservation-card {
     position: fixed;
