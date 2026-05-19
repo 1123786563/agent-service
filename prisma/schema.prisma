@@ -126,6 +126,8 @@ model User {
   settlementAdjustments SettlementAdjustment[]
   oAuthAccounts    OAuthAccount[]
   assignedQueueItems ContentQueueItem[]
+  notifications    Notification[]
+  notificationPreferences NotificationPreference[]
 }
 
 model OAuthAccount {
@@ -786,4 +788,44 @@ model WebhookDelivery {
   @@index([webhookId, createdAt])
   @@index([nextRetryAt])
   @@index([deliveredAt])
+}
+
+// ── Notification System ──────────────────────────────────────────────
+
+enum NotificationType {
+  ORDER_STATUS_CHANGED
+  DELIVERY_SUBMITTED
+  PAYMENT_RECEIVED
+  DISPUTE_OPENED
+  REVIEW_RECEIVED
+  SYSTEM_ANNOUNCEMENT
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([userId, type, createdAt])
+}
+
+model NotificationPreference {
+  id             String           @id @default(cuid())
+  userId         String
+  notificationType NotificationType
+  emailEnabled   Boolean          @default(true)
+  pushEnabled    Boolean          @default(true)
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
 }

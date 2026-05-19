@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Nav from "./nav";
+import { NotificationToast } from "@/components/notification-toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Nav />
         </header>
         <main className="page">{children}</main>
+        <NotificationToast />
         <footer className="site-footer">
           <div className="footer-inner">
             <section className="footer-column">
