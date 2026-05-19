@@ -628,3 +628,76 @@ model ContentQueueItem {
   @@index([assignedToId, status])
   @@index([priority, createdAt])
 }
+
+// ── Analytics & Monitoring ──────────────────────────────────────────
+
+model ModerationDailyStats {
+  id                  String   @id @default(cuid())
+  date                DateTime @unique
+  totalFlagged        Int      @default(0)
+  totalResolved       Int      @default(0)
+  falsePositiveCount  Int      @default(0)
+  avgResponseTimeMs   Float    @default(0)
+  moderatorThroughput Float    @default(0)
+  criticalCount       Int      @default(0)
+  highCount           Int      @default(0)
+  mediumCount         Int      @default(0)
+  lowCount            Int      @default(0)
+  textCount           Int      @default(0)
+  imageCount          Int      @default(0)
+  languageBreakdown   Json     @default("{}")
+  categoryBreakdown   Json     @default("{}")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([date])
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model AlertThreshold {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  metric       String
+  operator     String        @default("gt")
+  threshold    Float
+  windowMinutes Int          @default(60)
+  severity     AlertSeverity @default(HIGH)
+  isEnabled    Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  alerts       ModerationAlert[]
+
+  @@index([metric, isEnabled])
+}
+
+model ModerationAlert {
+  id          String        @id @default(cuid())
+  thresholdId String
+  metric      String
+  currentValue Float
+  threshold   Float
+  severity    AlertSeverity @default(HIGH)
+  status      AlertStatus   @default(ACTIVE)
+  message     String
+  triggeredAt DateTime      @default(now())
+  acknowledgedAt DateTime?
+  resolvedAt  DateTime?
+
+  threshold   AlertThreshold @relation(fields: [thresholdId], references: [id], onDelete: Cascade)
+
+  @@index([status, triggeredAt])
+  @@index([thresholdId])
+}
