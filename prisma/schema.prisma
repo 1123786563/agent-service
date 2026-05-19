@@ -125,6 +125,7 @@ model User {
   settlementBatches SettlementBatch[] @relation("ProviderSettlementBatches")
   settlementAdjustments SettlementAdjustment[]
   oAuthAccounts    OAuthAccount[]
+  assignedQueueItems ContentQueueItem[]
 }
 
 model OAuthAccount {
@@ -558,4 +559,72 @@ model SettlementBatch {
   settlementAdjustments SettlementAdjustment[]
 
   @@index([providerId, status, createdAt])
+}
+
+// ── Content Moderation ──────────────────────────────────────────────
+
+enum ContentQueuePriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ContentQueueStatus {
+  PENDING
+  ASSIGNED
+  IN_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum ModerationAction {
+  APPROVE
+  FLAG
+  REJECT
+}
+
+enum ModerationContentType {
+  TEXT
+  IMAGE
+}
+
+model ModerationRule {
+  id          String   @id @default(cuid())
+  name        String
+  pattern     String
+  language    String   @default("en")
+  severity    String   @default("medium")
+  category    String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([language, isActive])
+  @@index([category, severity])
+}
+
+model ContentQueueItem {
+  id             String               @id @default(cuid())
+  contentType    ModerationContentType
+  contentRef     String
+  contentSnippet String?
+  priority       ContentQueuePriority @default(MEDIUM)
+  status         ContentQueueStatus   @default(PENDING)
+  toxicityScore  Float?
+  flaggedPhrases String[]
+  categories     String[]
+  language       String?
+  assignedToId   String?
+  escalatedAt    DateTime?
+  resolvedAt     DateTime?
+  resolution     String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  assignedTo     User?                @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status, priority, createdAt])
+  @@index([assignedToId, status])
+  @@index([priority, createdAt])
 }
