@@ -701,3 +701,89 @@ model ModerationAlert {
   @@index([status, triggeredAt])
   @@index([thresholdId])
 }
+
+// ── Public API & Integration ────────────────────────────────────────
+
+enum ApiKeyTier {
+  STANDARD
+  PREMIUM
+}
+
+enum WebhookEvent {
+  ITEM_FLAGGED
+  ITEM_RESOLVED
+  ITEM_ESCALATED
+  ITEM_ASSIGNED
+  ALERT_TRIGGERED
+}
+
+model ApiKey {
+  id           String      @id @default(cuid())
+  keyHash      String      @unique
+  keyPrefix    String
+  name         String
+  tier         ApiKeyTier  @default(STANDARD)
+  rateLimit    Int         @default(100)
+  isActive     Boolean     @default(true)
+  lastUsedAt   DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  usageLogs    ApiUsageLog[]
+  webhooks     WebhookEndpoint[]
+
+  @@index([keyHash])
+  @@index([isActive])
+}
+
+model ApiUsageLog {
+  id          String   @id @default(cuid())
+  apiKeyId    String
+  endpoint    String
+  method      String
+  statusCode  Int
+  responseMs  Int
+  createdAt   DateTime @default(now())
+
+  apiKey      ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId, createdAt])
+  @@index([createdAt])
+}
+
+model WebhookEndpoint {
+  id          String         @id @default(cuid())
+  apiKeyId    String
+  url         String
+  secret      String
+  events      WebhookEvent[]
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  apiKey      ApiKey         @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  deliveries  WebhookDelivery[]
+
+  @@index([apiKeyId, isActive])
+}
+
+model WebhookDelivery {
+  id             String          @id @default(cuid())
+  webhookId      String
+  event          WebhookEvent
+  payload        Json
+  statusCode     Int?
+  response       String?
+  attempts       Int             @default(0)
+  maxAttempts    Int             @default(5)
+  nextRetryAt    DateTime?
+  deliveredAt    DateTime?
+  failedAt       DateTime?
+  createdAt      DateTime        @default(now())
+
+  webhook        WebhookEndpoint @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@index([nextRetryAt])
+  @@index([deliveredAt])
+}
