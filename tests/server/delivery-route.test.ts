@@ -10,9 +10,18 @@ vi.mock("@/server/deliveries/service", () => ({
   createDeliveryForOrder: vi.fn()
 }));
 
+vi.mock("@/server/orders/service", () => ({
+  getServiceOrderById: vi.fn()
+}));
+
+vi.mock("@/server/notifications/events", () => ({
+  notifyDeliverySubmitted: vi.fn().mockResolvedValue(undefined)
+}));
+
 import { POST } from "@/app/api/orders/[id]/deliveries/route";
 import { getCurrentUser, requireCreator } from "@/server/auth/session";
 import { createDeliveryForOrder } from "@/server/deliveries/service";
+import { getServiceOrderById } from "@/server/orders/service";
 
 describe("delivery upload route", () => {
   it("redirects anonymous users to login", async () => {
@@ -103,6 +112,7 @@ describe("delivery upload route", () => {
     } as never);
     vi.mocked(requireCreator).mockResolvedValue({ id: "creator-1" } as never);
     vi.mocked(createDeliveryForOrder).mockResolvedValue({ id: "delivery-1" } as never);
+    vi.mocked(getServiceOrderById).mockResolvedValue({ id: "order-1", providerId: "creator-1", buyerUserId: "buyer-1", buyerEmail: "buyer@test.com", title: "Test Order" } as never);
 
     const formData = new FormData();
     formData.set("file", new File([Buffer.from("delivery-bytes")], "handoff.txt", { type: "text/plain" }));

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NotificationBell } from "@/components/notification-bell";
 
 const productLinks = [
   { href: "/agents", label: "智能体", icon: "A", badge: undefined },
@@ -48,6 +49,7 @@ export default function Nav() {
             {label}
           </Link>
         ))}
+        <NotificationBell />
       </nav>
     </>
   );

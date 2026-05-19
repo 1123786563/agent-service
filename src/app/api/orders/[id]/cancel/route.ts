@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/server/auth/session";
 import { cancelServiceOrder, getServiceOrderById } from "@/server/orders/service";
+import { notifyOrderCancelled } from "@/server/notifications/events";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -31,6 +32,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await cancelServiceOrder({
       orderId: id
     });
+
+    // Fire-and-forget notification
+    notifyOrderCancelled(order.providerId, order.title, id).catch(() => {});
 
     return Response.redirect(new URL("/account/orders", request.url), 303);
   } catch (error) {

@@ -98,6 +98,37 @@ enum SettlementAdjustmentStatus {
   APPLIED
 }
 
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  IN_APP
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum NotificationType {
+  ORDER_CREATED
+  ORDER_PAID
+  ORDER_IN_PROGRESS
+  ORDER_DELIVERED
+  ORDER_COMPLETED
+  ORDER_CANCELLED
+  ORDER_DISPUTED
+  CONSULTATION_NEW
+  CONSULTATION_SCOPED
+  REVIEW_RECEIVED
+  PACKAGE_PUBLISHED
+  DELIVERY_SUBMITTED
+  PAYMENT_RECEIVED
+  SETTLEMENT_PAID
+  SYSTEM_ANNOUNCEMENT
+}
+
 model User {
   id              String          @id @default(cuid())
   email           String          @unique
@@ -125,6 +156,9 @@ model User {
   settlementBatches SettlementBatch[] @relation("ProviderSettlementBatches")
   settlementAdjustments SettlementAdjustment[]
   oAuthAccounts    OAuthAccount[]
+  notifications       Notification[]
+  notificationPreferences NotificationPreference[]
+  pushTokens        PushToken[]
 }
 
 model OAuthAccount {
@@ -558,4 +592,72 @@ model SettlementBatch {
   settlementAdjustments SettlementAdjustment[]
 
   @@index([providerId, status, createdAt])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  body        String
+  imageUrl    String?
+  actionUrl   String?
+  metadataJson Json?
+  dedupKey    String?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries  NotificationDelivery[]
+
+  @@unique([userId, dedupKey])
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model NotificationDelivery {
+  id               String                   @id @default(cuid())
+  notificationId   String
+  channel          NotificationChannel
+  status           NotificationDeliveryStatus @default(PENDING)
+  providerRef      String?
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  failedAt         DateTime?
+  failureReason    String?
+  createdAt        DateTime                 @default(now())
+
+  notification     Notification             @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId, channel])
+  @@index([status, createdAt])
+}
+
+model NotificationPreference {
+  id               String             @id @default(cuid())
+  userId           String
+  notificationType NotificationType
+  channel          NotificationChannel
+  enabled          Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType, channel])
+  @@index([userId])
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  platform  String   @default("web")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@index([userId])
 }

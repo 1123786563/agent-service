@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/server/auth/session";
 import { createDispute } from "@/server/disputes/service";
 import { getServiceOrderById } from "@/server/orders/service";
+import { notifyOrderDisputed } from "@/server/notifications/events";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -40,6 +41,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       openedByUserId: user.id,
       reason: "User requested dispute from order screen"
     });
+
+    // Fire-and-forget notification to provider
+    if (order) {
+      notifyOrderDisputed(order.providerId, order.title, id).catch(() => {});
+    }
 
     return Response.redirect(new URL(user.role === "CREATOR" ? "/creator/orders" : "/account/orders", request.url), 303);
   } catch (error) {

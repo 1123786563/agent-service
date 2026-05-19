@@ -8,9 +8,18 @@ vi.mock("@/server/deliveries/service", () => ({
   acceptLatestDelivery: vi.fn()
 }));
 
+vi.mock("@/server/orders/service", () => ({
+  getServiceOrderById: vi.fn()
+}));
+
+vi.mock("@/server/notifications/events", () => ({
+  notifyOrderCompleted: vi.fn().mockResolvedValue(undefined)
+}));
+
 import { POST } from "@/app/api/orders/[id]/complete/route";
 import { getCurrentUser } from "@/server/auth/session";
 import { acceptLatestDelivery } from "@/server/deliveries/service";
+import { getServiceOrderById } from "@/server/orders/service";
 
 describe("complete order route", () => {
   it("redirects anonymous users to login", async () => {
@@ -32,6 +41,7 @@ describe("complete order route", () => {
       email: "buyer@example.com"
     } as never);
     vi.mocked(acceptLatestDelivery).mockResolvedValue({ id: "delivery-1" } as never);
+    vi.mocked(getServiceOrderById).mockResolvedValue({ id: "order-1", providerId: "provider-1", buyerUserId: "buyer-1", title: "Test Order" } as never);
 
     const response = await POST(new Request("http://localhost/api/orders/order-1/complete", {
       method: "POST"

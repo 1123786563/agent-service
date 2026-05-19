@@ -8,6 +8,7 @@ import {
   markServiceOrderPaymentFailed,
   ConcurrentModificationError
 } from "@/server/orders/service";
+import { notifyOrderPaid } from "@/server/notifications/events";
 import { recordPaymentEvent } from "./ledger";
 import { devPaymentAdapter } from "./dev-adapter";
 import { StripePaymentProvider } from "./stripe-adapter";
@@ -208,6 +209,11 @@ export async function applyPaymentEvent(event: NormalizedPaymentEvent) {
       paymentStatus: paymentStatusFromEventType(event.type)
     }
   });
+
+  // Fire-and-forget notification when order is paid
+  if (event.type === "payment.succeeded" && updatedOrder) {
+    notifyOrderPaid(updatedOrder.providerId, updatedOrder.title, updatedOrder.id).catch(() => {});
+  }
 
   return updatedOrder;
 }

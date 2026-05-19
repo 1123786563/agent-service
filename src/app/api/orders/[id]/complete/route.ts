@@ -1,5 +1,7 @@
 import { getCurrentUser } from "@/server/auth/session";
 import { acceptLatestDelivery } from "@/server/deliveries/service";
+import { getServiceOrderById } from "@/server/orders/service";
+import { notifyOrderCompleted } from "@/server/notifications/events";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -11,10 +13,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
 
   try {
+    const order = await getServiceOrderById(id);
+
     await acceptLatestDelivery({
       orderId: id,
       buyerEmail: user.email
     });
+
+    // Fire-and-forget notification
+    if (order) {
+      notifyOrderCompleted(order.providerId, order.buyerUserId, order.title, id).catch(() => {});
+    }
 
     return Response.redirect(new URL("/account/orders", request.url), 303);
   } catch (error) {

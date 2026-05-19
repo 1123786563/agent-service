@@ -1,6 +1,8 @@
 import { WhitelistStatus } from "@prisma/client";
 import { getCurrentUser, requireCreator } from "@/server/auth/session";
 import { createDeliveryForOrder } from "@/server/deliveries/service";
+import { getServiceOrderById } from "@/server/orders/service";
+import { notifyDeliverySubmitted } from "@/server/notifications/events";
 import { rateLimiter, RATE_LIMIT_UPLOAD } from "@/server/rate-limit";
 
 const MAX_DELIVERY_FILE_BYTES = 25 * 1024 * 1024; // 25MB
@@ -84,6 +86,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       fileName: file.name,
       note
     });
+
+    // Fire-and-forget notification to buyer
+    const order = await getServiceOrderById(id);
+    if (order) {
+      notifyDeliverySubmitted(order.buyerUserId, order.buyerEmail, order.title, id).catch(() => {});
+    }
 
     return Response.redirect(new URL("/creator/orders", request.url), 303);
   } catch (error) {
