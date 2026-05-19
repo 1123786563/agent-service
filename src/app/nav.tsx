@@ -13,6 +13,7 @@ const productLinks = [
 const utilityLinks = [
   { href: "/creator", label: "创作者中心", admin: false },
   { href: "/account/orders", label: "订单", admin: false },
+  { href: "/moderation", label: "审核", admin: false },
   { href: "/admin", label: "管理", admin: true },
 ] as const;
 
