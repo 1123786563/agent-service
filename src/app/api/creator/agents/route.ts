@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const user = await requireCreator();
 
-  const uploadLimit = rateLimiter.check(`upload:${user.id}`, RATE_LIMIT_UPLOAD);
+  const uploadLimit = await rateLimiter.check(`upload:${user.id}`, RATE_LIMIT_UPLOAD);
   if (!uploadLimit.allowed) {
     return Response.json({
       errors: ["Rate limited"]

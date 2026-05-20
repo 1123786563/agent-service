@@ -10,8 +10,8 @@ vi.mock("@/server/consultations/service", () => ({
 }));
 
 vi.mock("@/server/rate-limit", () => ({
-  rateLimiter: { check: () => ({ allowed: true, retryAfterMs: 0, remaining: 10 }) },
-  RATE_LIMIT_CONSULTATION: { windowMs: 60000, maxRequests: 10 }
+  rateLimiter: { check: async () => ({ allowed: true, retryAfterMs: 0, remaining: 10 }) },
+  RATE_LIMIT_CONSULTATION: { rate: 1 / 6, burst: 10 }
 }));
 
 import { POST } from "@/app/api/consultations/route";

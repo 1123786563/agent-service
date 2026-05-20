@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { rateLimiter, RATE_LIMIT_WEBHOOK } from "@/server/rate-limit";
+import { rateLimiter, RATE_LIMIT_WEBHOOK, RATE_LIMIT_EXEMPT_PATHS, RATE_LIMIT_DEFAULT, rateLimitKey } from "@/server/rate-limit";
 
 const CSRF_EXEMPT_PATHS = [
   "/api/payments/webhook",
@@ -28,60 +28,65 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-export function middleware(request: NextRequest) {
+function rateLimitResponse(retryAfterMs: number, remaining: number): NextResponse {
+  const response = new NextResponse(
+    JSON.stringify({ errors: ["Rate limited"] }),
+    {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(Math.ceil(retryAfterMs / 1000)),
+      },
+    }
+  );
+  response.headers.set("X-RateLimit-Remaining", String(remaining));
+  return withSecurityHeaders(response);
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = new URL(request.url);
   const isApi = pathname.startsWith("/api/");
 
-  // For non-API routes, just add security headers
   if (!isApi) {
     const response = NextResponse.next();
     return withSecurityHeaders(response);
   }
 
-  // --- API route handling ---
+  // Exempt health checks and webhooks from rate limiting
+  if (RATE_LIMIT_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    const response = NextResponse.next();
+    return withSecurityHeaders(response);
+  }
 
-  // Security headers on all API responses too
-  let response: NextResponse;
+  // All API routes: apply rate limiting
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const isWebhook = pathname === "/api/payments/webhook";
+  const key = rateLimitKey("ip", isWebhook ? `webhook:${ip}` : ip);
+  const config = isWebhook ? RATE_LIMIT_WEBHOOK : RATE_LIMIT_DEFAULT;
+  const rateLimitResult = await rateLimiter.check(key, config);
 
-  // CSRF + Rate limiting on all state-changing API routes
+  if (!rateLimitResult.allowed) {
+    return rateLimitResponse(rateLimitResult.retryAfterMs, rateLimitResult.remaining);
+  }
+
+  // CSRF verification on state-changing routes
   const isStateChanging = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
 
   if (isStateChanging) {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    const isWebhook = pathname === "/api/payments/webhook";
-    const rateLimitResult = rateLimiter.check(
-      isWebhook ? `webhook:${ip}` : `ip:${ip}`,
-      isWebhook ? RATE_LIMIT_WEBHOOK : undefined
-    );
-
-    if (!rateLimitResult.allowed) {
-      return withSecurityHeaders(new NextResponse(
-        JSON.stringify({ errors: ["Rate limited"] }),
-        {
-          status: 429,
-          headers: {
-            "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(rateLimitResult.retryAfterMs / 1000)),
-          },
-        }
-      ));
-    }
-
     // Exempt paths validated by signature/state — skip CSRF only
     if (CSRF_EXEMPT_PATHS.includes(pathname)) {
-      response = NextResponse.next();
+      const response = NextResponse.next();
       response.headers.set("X-RateLimit-Remaining", String(rateLimitResult.remaining));
       return withSecurityHeaders(response);
     }
 
-    // CSRF Origin verification (non-exempt routes)
     const origin = request.headers.get("origin");
     const appUrl = process.env.APP_URL ?? "http://localhost:3000";
     const appHostname = new URL(appUrl).hostname;
 
     if (!origin) {
       if (process.env.NODE_ENV !== "production") {
-        response = NextResponse.next();
+        const response = NextResponse.next();
         response.headers.set("X-RateLimit-Remaining", String(rateLimitResult.remaining));
         return withSecurityHeaders(response);
       }
@@ -96,7 +101,7 @@ export function middleware(request: NextRequest) {
       originHostname === appHostname ||
       originHostname.endsWith("." + appHostname)
     ) {
-      response = NextResponse.next();
+      const response = NextResponse.next();
       response.headers.set("X-RateLimit-Remaining", String(rateLimitResult.remaining));
       return withSecurityHeaders(response);
     }
@@ -107,8 +112,9 @@ export function middleware(request: NextRequest) {
     ));
   }
 
-  // Non-POST API routes: just security headers
-  response = NextResponse.next();
+  // Non-mutating API routes: just security headers
+  const response = NextResponse.next();
+  response.headers.set("X-RateLimit-Remaining", String(rateLimitResult.remaining));
   return withSecurityHeaders(response);
 }
 

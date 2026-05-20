@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
   // IP-based rate limit to prevent email enumeration (before user lookup)
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const ipLimit = rateLimiter.check(`login_ip:${ip}`, { windowMs: LOGIN_IP_WINDOW_MS, maxRequests: LOGIN_IP_LIMIT });
+  const ipLimit = await rateLimiter.check(`login_ip:${ip}`, { rate: LOGIN_IP_LIMIT / (LOGIN_IP_WINDOW_MS / 1000), burst: LOGIN_IP_LIMIT });
   if (!ipLimit.allowed) {
     return Response.json({ errors: ["Too many login attempts. Try again later."] }, { status: 429 });
   }
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   // Check account lockout (per-user, only counts failures)
   const lockoutKey = `login_fail:${user.id}`;
-  const lockoutResult = rateLimiter.check(lockoutKey, { windowMs: LOGIN_FAILURE_WINDOW_MS, maxRequests: LOGIN_FAILURE_LIMIT });
+  const lockoutResult = await rateLimiter.check(lockoutKey, { rate: LOGIN_FAILURE_LIMIT / (LOGIN_FAILURE_WINDOW_MS / 1000), burst: LOGIN_FAILURE_LIMIT });
   if (!lockoutResult.allowed) {
     return Response.json({ errors: ["Account temporarily locked — too many failed attempts. Try again later."] }, { status: 429 });
   }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   }
 
   // Successful login: reset the failure counter
-  rateLimiter.reset(lockoutKey);
+  await rateLimiter.reset(lockoutKey);
 
   await createSession(user.id);
   await recordAuditLog({

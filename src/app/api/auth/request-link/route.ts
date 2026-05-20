@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const email = String(formData.get("email") ?? "");
   const normalizedEmail = email.trim().toLowerCase();
-  const authLimit = rateLimiter.check(`auth:${normalizedEmail}`, RATE_LIMIT_AUTH);
+  const authLimit = await rateLimiter.check(`auth:${normalizedEmail}`, RATE_LIMIT_AUTH);
   if (!authLimit.allowed) {
     redirect("/login?error=rate_limited");
     return;

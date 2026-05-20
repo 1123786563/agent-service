@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return Response.json({ errors: ["Authentication required"] }, { status: 401 });
   }
 
-  const consultLimit = rateLimiter.check(`consultation:${user.id}`, RATE_LIMIT_CONSULTATION);
+  const consultLimit = await rateLimiter.check(`consultation:${user.id}`, RATE_LIMIT_CONSULTATION);
   if (!consultLimit.allowed) {
     return Response.json({
       errors: ["Rate limited"]
