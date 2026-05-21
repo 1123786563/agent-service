@@ -8,6 +8,9 @@ export type OAuthUserInfo = {
   emailVerified: boolean;
   name?: string;
   avatarUrl?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  accessTokenExpiresAt?: Date;
 };
 
 export async function handleOAuthLogin(info: OAuthUserInfo) {
@@ -29,6 +32,14 @@ export async function handleOAuthLogin(info: OAuthUserInfo) {
     });
 
     if (existingAccount) {
+      await tx.oAuthAccount.update({
+        where: { id: existingAccount.id },
+        data: {
+          accessToken: info.accessToken ?? null,
+          refreshToken: info.refreshToken ?? null,
+          expiresAt: info.accessTokenExpiresAt ?? null,
+        },
+      });
       await createSession(existingAccount.user.id);
       return existingAccount.user;
     }
@@ -42,7 +53,10 @@ export async function handleOAuthLogin(info: OAuthUserInfo) {
         data: {
           provider: info.provider,
           providerAccountId: info.providerAccountId,
-          userId: existingUser.id
+          userId: existingUser.id,
+          accessToken: info.accessToken ?? null,
+          refreshToken: info.refreshToken ?? null,
+          expiresAt: info.accessTokenExpiresAt ?? null,
         }
       });
       await createSession(existingUser.id);
@@ -56,7 +70,10 @@ export async function handleOAuthLogin(info: OAuthUserInfo) {
         oAuthAccounts: {
           create: {
             provider: info.provider,
-            providerAccountId: info.providerAccountId
+            providerAccountId: info.providerAccountId,
+            accessToken: info.accessToken ?? null,
+            refreshToken: info.refreshToken ?? null,
+            expiresAt: info.accessTokenExpiresAt ?? null,
           }
         }
       }

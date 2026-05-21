@@ -1361,6 +1361,47 @@ code {
   margin-bottom: 24px;
 }
 
+/* ── OAuth buttons ── */
+.oauth-buttons {
+  display: grid;
+  gap: 10px;
+}
+
+.button-oauth {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.button-oauth:hover {
+  background: var(--surface-soft);
+  border-color: var(--text);
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+
 /* ── Experience / service cards ── */
 .experience-grid {
   display: grid;

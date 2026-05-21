@@ -53,7 +53,7 @@ export async function handleGoogleCallback(code: string, state: string) {
   const google = getGoogleOAuth();
   const tokens = await google.validateAuthorizationCode(code, codeVerifier);
   const response = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
-    headers: { Authorization: `Bearer ${tokens.accessToken}` }
+    headers: { Authorization: `Bearer ${tokens.accessToken()}` }
   });
   const userinfo: { sub: string; email: string; email_verified: boolean; name?: string; picture?: string } = await response.json();
 
@@ -66,6 +66,9 @@ export async function handleGoogleCallback(code: string, state: string) {
     email: userinfo.email,
     emailVerified: userinfo.email_verified === true,
     name: userinfo.name,
-    avatarUrl: userinfo.picture
+    avatarUrl: userinfo.picture,
+    accessToken: tokens.accessToken(),
+    refreshToken: tokens.hasRefreshToken() ? tokens.refreshToken() : undefined,
+    accessTokenExpiresAt: tokens.accessTokenExpiresAt(),
   });
 }

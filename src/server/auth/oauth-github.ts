@@ -45,12 +45,12 @@ export async function handleGitHubCallback(code: string, state: string) {
   const tokens = await github.validateAuthorizationCode(code);
 
   const userResponse = await fetch("https://api.github.com/user", {
-    headers: { Authorization: `Bearer ${tokens.accessToken}` }
+    headers: { Authorization: `Bearer ${tokens.accessToken()}` }
   });
   const githubUser: { id: number; login: string; name?: string; avatar_url?: string } = await userResponse.json();
 
   const emailResponse = await fetch("https://api.github.com/user/emails", {
-    headers: { Authorization: `Bearer ${tokens.accessToken}` }
+    headers: { Authorization: `Bearer ${tokens.accessToken()}` }
   });
   const emails: { email: string; verified: boolean; primary: boolean }[] = await emailResponse.json();
 
@@ -67,6 +67,9 @@ export async function handleGitHubCallback(code: string, state: string) {
     email: primaryEmail.email,
     emailVerified: primaryEmail.verified,
     name: githubUser.name ?? githubUser.login,
-    avatarUrl: githubUser.avatar_url
+    avatarUrl: githubUser.avatar_url,
+    accessToken: tokens.accessToken(),
+    refreshToken: tokens.hasRefreshToken() ? tokens.refreshToken() : undefined,
+    accessTokenExpiresAt: tokens.accessTokenExpiresAt(),
   });
 }

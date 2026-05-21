@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { rateLimiter, RATE_LIMIT_WEBHOOK } from "@/server/rate-limit";
 
+const SESSION_COOKIE_NAME = "hermes_market_session";
+
 const CSRF_EXEMPT_PATHS = [
   "/api/payments/webhook",
   "/api/auth/consume",
@@ -10,6 +12,28 @@ const CSRF_EXEMPT_PATHS = [
   "/api/auth/google",
   "/api/auth/github",
 ];
+
+const PROTECTED_PAGE_PREFIXES = ["/creator", "/account"];
+const PUBLIC_API_PREFIXES = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/request-link",
+  "/api/auth/consume",
+  "/api/auth/google",
+  "/api/auth/github",
+  "/api/auth/callback/",
+  "/api/agents/",
+];
+
+function isProtectedPage(pathname: string): boolean {
+  return PROTECTED_PAGE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function isProtectedApi(pathname: string): boolean {
+  if (!pathname.startsWith("/api/")) return false;
+  if (pathname === "/api/auth/logout") return true;
+  return !PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
@@ -31,6 +55,22 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
 export function middleware(request: NextRequest) {
   const { pathname } = new URL(request.url);
   const isApi = pathname.startsWith("/api/");
+
+  // Route protection: check session cookie
+  const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+
+  if (isProtectedPage(pathname) && !sessionToken) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return withSecurityHeaders(NextResponse.redirect(loginUrl));
+  }
+
+  if (isProtectedApi(pathname) && !sessionToken) {
+    return withSecurityHeaders(new NextResponse(
+      JSON.stringify({ errors: ["Authentication required"] }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    ));
+  }
 
   // For non-API routes, just add security headers
   if (!isApi) {
